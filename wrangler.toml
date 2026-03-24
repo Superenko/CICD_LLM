@@ -1,7 +1,0 @@
-name = "ash-list-tasks"
-compatibility_date = "2024-03-14"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "ash-list-tasks"
-database_id = "2b72e46d-8534-4afe-92ac-a9041204f034"

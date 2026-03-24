@@ -1,5 +1,5 @@
 import ModelsService from '@/modules/models/models.service';
-import { CloudflareService } from '@/services/cloudflare.service';
+import { GitHubService } from '@/services/github.service';
 import { AuthContext } from '@/types/context';
 import { GithubDeploymentWorkflowInputs } from '@/types/github';
 import { handleApiError } from '@/utils/api';
@@ -31,20 +31,20 @@ export const handleCreateProject = async (ctx: AuthContext) => {
       throw new Error('Model name is required');
     }
 
-    const cloudflareService = new CloudflareService(ctx.env);
-    const project = await cloudflareService.createProject(projectData);
+    const githubService = new GitHubService(ctx.env);
+    const result = await githubService.triggerDeployWorkflowRun(projectData);
 
     const projectsService = new ProjectsService(ctx.env);
     const modelsService = new ModelsService(ctx.env);
 
     ctx.executionCtx.waitUntil(
       Promise.all([
-        projectsService.syncModelPagesProjectsFromCloudflare(),
+        projectsService.syncProjectsFromGithubRepos(),
         modelsService.syncModels()
       ]).catch(console.error)
     );
 
-    return ctx.json(project);
+    return ctx.json(result);
   } catch (error) {
     return ctx.json(handleApiError(error, 'An unexpected error occurred during login'), 500);
   }
@@ -54,12 +54,12 @@ export const handleDeployProject = async (ctx: AuthContext) => {
   try {
     const body = await ctx.req.json<GithubDeploymentWorkflowInputs>();
 
-    const cloudflareService = new CloudflareService(ctx.env);
-    const deploymentResult = await cloudflareService.deployProject(body);
+    const githubService = new GitHubService(ctx.env);
+    const deploymentResult = await githubService.triggerDeployWorkflowRun(body);
 
     const projectsService = new ProjectsService(ctx.env);
     ctx.executionCtx.waitUntil(
-      projectsService.syncModelPagesProjectsFromCloudflare().catch(console.error)
+      projectsService.syncProjectsFromGithubRepos().catch(console.error)
     );
 
     return ctx.json(deploymentResult, 202);
@@ -71,8 +71,8 @@ export const handleDeployProject = async (ctx: AuthContext) => {
 export const handleGetProjectLatestDeployment = async (ctx: AuthContext) => {
   const { name } = ctx.req.param();
 
-  const cloudflareService = new CloudflareService(ctx.env);
-  const project = await cloudflareService.getProjectLatestDeployment(name);
+  const githubService = new GitHubService(ctx.env);
+  const project = await githubService.getLatestWorkflowRunJob(name);
 
   return ctx.json(project);
 };
@@ -80,7 +80,7 @@ export const handleGetProjectLatestDeployment = async (ctx: AuthContext) => {
 export const handleSyncProjects = async (ctx: AuthContext) => {
   try {
     const projectsService = new ProjectsService(ctx.env);
-    const syncResult = await projectsService.syncModelPagesProjectsFromCloudflare();
+    const syncResult = await projectsService.syncProjectsFromGithubRepos();
     return ctx.json(syncResult);
   } catch (error) {
     return ctx.json(handleApiError(error, 'An unexpected error occurred during project sync'), 500);

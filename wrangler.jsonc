@@ -1,0 +1,32 @@
+{
+  "name": "llm-app",
+  "compatibility_date": "2025-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "./worker/index.ts",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "ASH_LIST_TASKS_DB",
+      "database_name": "llm-db",
+      "database_id": "3f2b19bb-4e7f-4d18-805e-66dad8eb2b5b"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "WORKFLOW_RUN_LOGS",
+      "id": "0d03f7498ecc491382cba137eb73bfb7"
+    }
+  ],
+  "secrets_store_secrets": [
+    { "binding": "ASH_LIST_TASKS_EMAIL",         "secret_name": "ASH_LIST_TASKS_EMAIL",         "store_id": "646cc8aab9ca49cb99ce65243cdef98b" },
+    { "binding": "ASH_LIST_TASKS_PASSWORD",      "secret_name": "ASH_LIST_TASKS_PASSWORD",      "store_id": "646cc8aab9ca49cb99ce65243cdef98b" },
+    { "binding": "ASH_LIST_TASKS_GITHUB_TOKEN",  "secret_name": "ASH_LIST_TASKS_GITHUB_TOKEN",  "store_id": "646cc8aab9ca49cb99ce65243cdef98b" },
+    { "binding": "ASH_LIST_GITHUB_ORGANIZATION", "secret_name": "ASH_LIST_GITHUB_ORGANIZATION", "store_id": "646cc8aab9ca49cb99ce65243cdef98b" },
+    { "binding": "ASH_LIST_GITHUB_REPO",         "secret_name": "ASH_LIST_GITHUB_REPO",         "store_id": "646cc8aab9ca49cb99ce65243cdef98b" },
+    { "binding": "ASH_LIST_GITHUB_BRANCH",       "secret_name": "ASH_LIST_GITHUB_BRANCH",       "store_id": "646cc8aab9ca49cb99ce65243cdef98b" },
+    { "binding": "ASH_LIST_WORKFLOW_FILENAME",   "secret_name": "ASH_LIST_WORKFLOW_FILENAME",   "store_id": "646cc8aab9ca49cb99ce65243cdef98b" }
+  ]
+}

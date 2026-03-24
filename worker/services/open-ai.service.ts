@@ -47,7 +47,7 @@ export class OpenAIService {
   }
 
   private async getOpenAICredentials(): Promise<OpenAICredentials> {
-    const apiKey = await this.env.OPENAI_API_KEY.get();
+    const apiKey = await this.env.OPENAI_API_KEY?.get();
 
     if (!apiKey) {
       throw new Error('OpenAI API key is not configured.');

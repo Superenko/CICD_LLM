@@ -43,8 +43,8 @@ export class AirtableService {
   }
 
   public async getAirtableCredentials(): Promise<AirtableCredentials> {
-    const baseId = await this.env.ASH_LIST_AIRTABLE_BASE_ID.get();
-    const apiKey = await this.env.ASH_LIST_AIRTABLE_KEY.get();
+    const baseId = await this.env.ASH_LIST_AIRTABLE_BASE_ID?.get();
+    const apiKey = await this.env.ASH_LIST_AIRTABLE_KEY?.get();
 
     if (!baseId || !apiKey) {
       throw new Error('Airtable credentials are not configured.');

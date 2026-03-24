@@ -22,6 +22,8 @@ export interface GithubWorkflowRunJob {
     | 'action_required'
     | null;
   steps?: GithubWorkflowRunJobStep[];
+  started_at?: string | null;
+  completed_at?: string | null;
 }
 
 export interface GithubWorkflowRunJobStep {

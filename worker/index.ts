@@ -7,7 +7,7 @@ import { handleApiError } from './utils/api';
 import { isDevMode } from './utils/misc';
 import apiRouter from './routes';
 
-const ALLOWED_ORIGINS = ['https://ash-list-tasks.brett-4e2.workers.dev'];
+const ALLOWED_ORIGINS = ['https://llm-app.brett-4e2.workers.dev'];
 
 if (isDevMode()) {
   ALLOWED_ORIGINS.push('http://localhost:5173');

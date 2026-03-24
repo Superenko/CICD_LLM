@@ -2,9 +2,9 @@ import { type Pagination } from '@shared/types/misc';
 
 export interface Project {
   id: number;
-  cloudflare_id: string;
+  github_repo_id: string;
   name: string;
-  domains: string | null;
+  html_url: string | null;
   latest_deployment_status: string | null;
   latest_deployment_at: number | null;
   synced_at: number;
@@ -12,7 +12,7 @@ export interface Project {
 
 export interface ProjectFilters {
   name?: string;
-  cloudflareId?: string;
+  githubRepoId?: string;
   syncedBefore?: number;
   syncedAfter?: number;
 }

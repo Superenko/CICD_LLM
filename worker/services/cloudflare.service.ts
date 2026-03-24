@@ -174,8 +174,8 @@ export class CloudflareService {
   }
 
   public async getCloudflareConfig() {
-    const apiToken = await this.env.ASH_LIST_TASKS_CF_TOKEN.get();
-    const accountId = await this.env.ASH_LIST_TASKS_CF_ACCOUNT_ID.get();
+    const apiToken = await this.env.ASH_LIST_TASKS_CF_TOKEN?.get();
+    const accountId = await this.env.ASH_LIST_TASKS_CF_ACCOUNT_ID?.get();
 
     if (!apiToken || !accountId) {
       throw new Error('Cloudflare credentials are not configured.');

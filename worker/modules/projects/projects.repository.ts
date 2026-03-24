@@ -40,7 +40,7 @@ class ProjectsRepository extends BaseRepository {
   } {
     const filterMap: Record<string, [string, unknown]> = {
       name: ['name LIKE ?', `%${filters.name}%`],
-      cloudflareId: ['cloudflare_id = ?', filters.cloudflareId],
+      githubRepoId: ['github_repo_id = ?', filters.githubRepoId],
       syncedAfter: ['synced_at >= ?', filters.syncedAfter],
       syncedBefore: ['synced_at <= ?', filters.syncedBefore]
     };
@@ -80,7 +80,7 @@ class ProjectsRepository extends BaseRepository {
     const { limit, offset } = pagination;
 
     const result = await this.prepareSQLQuery(
-      `SELECT id, cloudflare_id, name, domains, latest_deployment_status, latest_deployment_at, synced_at FROM projects ${whereClause} ORDER BY latest_deployment_at DESC LIMIT ? OFFSET ?`
+      `SELECT id, github_repo_id, name, html_url, latest_deployment_status, latest_deployment_at, synced_at FROM projects ${whereClause} ORDER BY latest_deployment_at DESC LIMIT ? OFFSET ?`
     )
       .bind(...params, limit, offset)
       .all<Project>();
@@ -92,7 +92,7 @@ class ProjectsRepository extends BaseRepository {
     projects: Array<
       Pick<
         Project,
-        'cloudflare_id' | 'name' | 'domains' | 'latest_deployment_status' | 'latest_deployment_at'
+        'github_repo_id' | 'name' | 'html_url' | 'latest_deployment_status' | 'latest_deployment_at'
       >
     >
   ): Promise<{ upsertedCount: number }> {
@@ -102,13 +102,13 @@ class ProjectsRepository extends BaseRepository {
       const now = Math.floor(Date.now() / 1000);
 
       const sqlQuery = this.prepareSQLQuery(`INSERT OR REPLACE INTO projects 
-        (cloudflare_id, name, domains, latest_deployment_status, latest_deployment_at, synced_at) 
+        (github_repo_id, name, html_url, latest_deployment_status, latest_deployment_at, synced_at) 
         VALUES (?, ?, ?, ?, ?, ?)`);
       const statements = projects.map((project) =>
         sqlQuery.bind(
-          project.cloudflare_id,
+          project.github_repo_id,
           project.name,
-          project.domains,
+          project.html_url,
           project.latest_deployment_status,
           project.latest_deployment_at,
           now
@@ -124,17 +124,17 @@ class ProjectsRepository extends BaseRepository {
     }
   }
 
-  public async bulkDeleteByCloudflareIds(
-    cloudflareIds: string[]
+  public async bulkDeleteByGithubRepoIds(
+    githubRepoIds: string[]
   ): Promise<{ deletedCount: number }> {
     try {
-      if (!cloudflareIds.length) return { deletedCount: 0 };
+      if (!githubRepoIds.length) return { deletedCount: 0 };
 
-      const placeholders = cloudflareIds.map(() => '?').join(', ');
+      const placeholders = githubRepoIds.map(() => '?').join(', ');
       const result = await this.prepareSQLQuery(
-        `DELETE FROM projects WHERE cloudflare_id IN (${placeholders})`
+        `DELETE FROM projects WHERE github_repo_id IN (${placeholders})`
       )
-        .bind(...cloudflareIds)
+        .bind(...githubRepoIds)
         .run();
 
       return { deletedCount: result.meta.changes ?? 0 };

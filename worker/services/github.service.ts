@@ -217,7 +217,7 @@ export class GitHubService {
 
       const initialResponse = await fetch(apiUrl, {
         method: 'GET',
-        headers: { ...defaultHeaders, 'user-agent': 'ash-list-tasks-worker' },
+        headers: { ...defaultHeaders, 'user-agent': 'llm-app-worker' },
         redirect: 'manual'
       });
 
@@ -327,6 +327,24 @@ export class GitHubService {
       return { runId };
     } catch (error) {
       handleServiceError(error, 'Failed to dispatch GitHub workflow');
+    }
+  }
+
+  public async getRepositories() {
+    try {
+      const { owner, repo } = await this.getRepositoryConfig();
+      const defaultHeaders = await this.buildDefaultHeaders();
+
+      const response = await request('GET /repos/{owner}/{repo}', {
+        owner,
+        repo,
+        headers: { ...defaultHeaders }
+      });
+
+      return [response.data];
+    } catch (error) {
+      handleServiceError(error, 'Failed to fetch repositories');
+      throw error;
     }
   }
 

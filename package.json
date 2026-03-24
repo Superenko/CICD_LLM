@@ -1,5 +1,5 @@
 {
-  "name": "ash-list-tasks",
+  "name": "llm-app",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -13,11 +13,12 @@
     "check": "tsc && vite build && wrangler deploy --dry-run",
     "deploy": "npm run build && wrangler deploy",
     "cf-typegen": "wrangler types",
-    "db:migrate:local": "wrangler d1 migrations apply ash-list-tasks --local",
-    "db:migrate:remote": "wrangler d1 migrations apply ash-list-tasks --remote",
-    "db:reset": "wrangler d1 execute ash-list-tasks --local --file=./worker/db/schema.sql"
+    "db:migrate:local": "wrangler d1 migrations apply llm-app --local",
+    "db:migrate:remote": "wrangler d1 migrations apply llm-app --remote",
+    "db:reset": "wrangler d1 execute llm-app --local --file=./worker/db/schema.sql"
   },
   "dependencies": {
+    "@google/genai": "^1.45.0",
     "@octokit/request": "^10.0.3",
     "cloudflare": "^4.5.0",
     "hono": "^4.8.12",

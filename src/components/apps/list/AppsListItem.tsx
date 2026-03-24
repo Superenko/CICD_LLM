@@ -25,7 +25,7 @@ const AppsListItem = ({ className, appData, ...props }: AppsListItemProps) => {
     appDeploymentTriggerState: { requestedAppDeployments, appDeploymentRequestError }
   } = useApps();
 
-  const { name: appName, latest_deployment_status, latest_deployment_at, domains } = appData;
+  const { name: appName, latest_deployment_status, latest_deployment_at, html_url } = appData;
 
   const status = (latest_deployment_status as unknown as AppStatus) ?? undefined;
 
@@ -34,15 +34,9 @@ const AppsListItem = ({ className, appData, ...props }: AppsListItemProps) => {
     : undefined;
 
   const pageUrls = useMemo(() => {
-    if (!domains) return undefined;
-
-    const domainsArray = typeof domains === 'string' ? domains.split(',') : domains;
-
-    return domainsArray
-      .map((domain: string) => domain.trim())
-      .filter(Boolean)
-      .map((domain: string) => `https://${domain}`);
-  }, [domains]);
+    if (!html_url) return undefined;
+    return [html_url];
+  }, [html_url]);
 
   const isDeploying = useMemo(
     () => (status ? checkIfDeploying(status as GithubWorkflowJobStepStatus) : false),

@@ -25,7 +25,7 @@ export class SyncService {
 
   private async syncProjects(): Promise<void> {
     try {
-      await this.projectsService.syncModelPagesProjectsFromCloudflare();
+      await this.projectsService.syncProjectsFromGithubRepos();
     } catch (error) {
       console.error('Error syncing projects from Cloudflare:', error);
       throw error;

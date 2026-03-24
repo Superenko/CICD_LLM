@@ -11,7 +11,8 @@
     {
       "binding": "ASH_LIST_TASKS_DB",
       "database_name": "llm-db",
-      "database_id": "3f2b19bb-4e7f-4d18-805e-66dad8eb2b5b"
+      "database_id": "3f2b19bb-4e7f-4d18-805e-66dad8eb2b5b",
+      "migrations_dir": "worker/db/migrations"
     }
   ],
   "kv_namespaces": [

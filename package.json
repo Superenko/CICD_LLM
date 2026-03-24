@@ -13,9 +13,9 @@
     "check": "tsc && vite build && wrangler deploy --dry-run",
     "deploy": "npm run build && wrangler deploy",
     "cf-typegen": "wrangler types",
-    "db:migrate:local": "wrangler d1 migrations apply llm-app --local",
-    "db:migrate:remote": "wrangler d1 migrations apply llm-app --remote",
-    "db:reset": "wrangler d1 execute llm-app --local --file=./worker/db/schema.sql"
+    "db:migrate:local": "wrangler d1 migrations apply ASH_LIST_TASKS_DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply ASH_LIST_TASKS_DB --remote",
+    "db:reset": "wrangler d1 execute ASH_LIST_TASKS_DB --local --file=./worker/db/schema.sql"
   },
   "dependencies": {
     "@google/genai": "^1.45.0",

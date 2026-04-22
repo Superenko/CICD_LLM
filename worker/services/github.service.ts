@@ -340,11 +340,15 @@ export class GitHubService {
       const defaultHeaders = await this.buildDefaultHeaders();
 
       try {
-        const response = await request('GET /users/{owner}/repos?sort=updated&per_page=100', {
-          owner,
+        // Отримуємо ВСІ репозиторії (включаючи приватні), до яких має доступ токен
+        const response = await request('GET /user/repos?sort=updated&per_page=100', {
           headers: { ...defaultHeaders }
         });
-        return response.data;
+        
+        // Фільтруємо їх за власником (якщо вказаний)
+        return response.data.filter((item: any) => 
+          item.owner.login.toLowerCase() === owner.toLowerCase()
+        );
       } catch (e: any) {
         if (e.status === 404) {
           const orgResponse = await request('GET /orgs/{owner}/repos?sort=updated&per_page=100', {

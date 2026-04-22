@@ -33,7 +33,7 @@ export class ProjectsService {
       const repositories = await this.githubService.getRepositories();
       
       const remoteProjects = await Promise.all(
-        repositories.map((repo) => this.mapGithubRepoToDB(repo))
+        repositories.map((repo: any) => this.mapGithubRepoToDB(repo))
       );
 
       const { upsertedCount } = await this.repository.bulkUpsert(remoteProjects);

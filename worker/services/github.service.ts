@@ -24,23 +24,25 @@ const WORKFLOW_RUNS_PER_PAGE = 30;
 export class GitHubService {
   constructor(private readonly env: Env) {}
 
-  private async getDeploymentWorkflow() {
+  private async getDeploymentWorkflow(repoName: string) {
     try {
-      const { owner, repo } = await this.getRepositoryConfig();
+      const { owner } = await this.getRepositoryConfig();
 
       const defaultHeaders = await this.buildDefaultHeaders();
 
       const workflows = await request('GET /repos/{owner}/{repo}/actions/workflows', {
         owner,
-        repo,
+        repo: repoName,
         headers: {
           ...defaultHeaders
         }
       });
 
       const workflowFilename = await this.getWorkflowFilename();
+      const filenameWithoutExt = workflowFilename.split('.')[0];
+      
       const targetWorkflow = workflows.data.workflows?.find((wf) =>
-        wf.path.includes(workflowFilename)
+        wf.path.includes(workflowFilename) || wf.path.includes(`${filenameWithoutExt}.yaml`) || wf.path.includes(`${filenameWithoutExt}.yml`)
       );
 
       return targetWorkflow;
@@ -51,7 +53,7 @@ export class GitHubService {
 
   private async getWorkflowRunByProjectName(projectName: string, queryParamsString?: string) {
     try {
-      const { owner, repo, branch } = await this.getRepositoryConfig();
+      const { owner, branch } = await this.getRepositoryConfig();
 
       const queryParams =
         queryParamsString ??
@@ -66,7 +68,7 @@ export class GitHubService {
         `GET /repos/{owner}/{repo}/actions/runs?${queryParams}`,
         {
           owner,
-          repo,
+          repo: projectName,
           headers: { ...defaultHeaders }
         }
       );
@@ -77,7 +79,7 @@ export class GitHubService {
         []) as unknown as GithubWorkflowRun[];
 
       const workflowRun = workflowRuns.find(
-        (run) => run.event === 'workflow_dispatch' && run.name?.includes(projectName)
+        (run) => run.event === 'workflow_dispatch' || run.event === 'push'
       );
 
       return { workflowRun, linkHeader };
@@ -150,7 +152,7 @@ export class GitHubService {
         throw new Error('Workflow run not found');
       }
 
-      const workflowRunLogs = await this.getWorkflowRunJobErrors(latestWorkflowRunId);
+      const workflowRunLogs = await this.getWorkflowRunJobErrors(latestWorkflowRunId, projectName);
       let errorSummary: string | null | undefined = null;
 
       const summaryKey = `${KV_RUN_SUMMARY_KEY}:${latestWorkflowRunId}`;
@@ -173,7 +175,7 @@ export class GitHubService {
         }
       }
 
-      const workflowRunJob = await this.getWorkflowRunJob(latestWorkflowRunId);
+      const workflowRunJob = await this.getWorkflowRunJob(latestWorkflowRunId, projectName);
 
       return { workflowRunJob, errorSummary };
     } catch (error) {
@@ -182,14 +184,14 @@ export class GitHubService {
     }
   }
 
-  public async getWorkflowRunJob(runId: number): Promise<GithubWorkflowRunJob | null | undefined> {
+  public async getWorkflowRunJob(runId: number, repoName: string): Promise<GithubWorkflowRunJob | null | undefined> {
     try {
       const githubToken = await this.getGitHubToken();
-      const { owner, repo } = await this.getRepositoryConfig();
+      const { owner } = await this.getRepositoryConfig();
 
       const jobs = await request('GET /repos/{owner}/{repo}/actions/runs/{run_id}/jobs', {
         owner,
-        repo,
+        repo: repoName,
         run_id: runId,
         headers: {
           authorization: `token ${githubToken}`
@@ -203,16 +205,16 @@ export class GitHubService {
     }
   }
 
-  private async getWorkflowRunJobLogs(jobId: number) {
+  private async getWorkflowRunJobLogs(jobId: number, repoName: string) {
     try {
       const jobLogsKey = `${KV_JOB_LOGS_KEY}:${jobId}`;
 
       const cachedJobLogs = await this.env.WORKFLOW_RUN_LOGS.get(jobLogsKey);
       if (cachedJobLogs) return cachedJobLogs;
 
-      const { owner, repo } = await this.getRepositoryConfig();
+      const { owner } = await this.getRepositoryConfig();
 
-      const apiUrl = `https://api.github.com/repos/${owner}/${repo}/actions/jobs/${jobId}/logs`;
+      const apiUrl = `https://api.github.com/repos/${owner}/${repoName}/actions/jobs/${jobId}/logs`;
       const defaultHeaders = await this.buildDefaultHeaders();
 
       const initialResponse = await fetch(apiUrl, {
@@ -253,7 +255,7 @@ export class GitHubService {
     }
   }
 
-  public async getWorkflowRunJobErrors(runId: number): Promise<GithubWorkflowRunErrors | null> {
+  public async getWorkflowRunJobErrors(runId: number, repoName: string): Promise<GithubWorkflowRunErrors | null> {
     try {
       const runErrorsKey = `${KV_RUN_ERRORS_KEY}:${runId}`;
 
@@ -264,13 +266,13 @@ export class GitHubService {
 
       if (cachedRunErrors) return cachedRunErrors;
 
-      const workflowRunJob = await this.getWorkflowRunJob(runId);
+      const workflowRunJob = await this.getWorkflowRunJob(runId, repoName);
       const { id: jobId, name: jobName } = workflowRunJob ?? {};
 
       const isFailedJob = workflowRunJob?.conclusion === 'failure';
       if (!jobId || !isFailedJob) return null;
 
-      const jobLogs = await this.getWorkflowRunJobLogs(jobId);
+      const jobLogs = await this.getWorkflowRunJobLogs(jobId, repoName);
       if (!jobLogs) return null;
 
       const errorLines = extractErrorLines(jobLogs);
@@ -290,9 +292,11 @@ export class GitHubService {
 
   public async triggerDeployWorkflowRun(inputs: GithubDeploymentWorkflowInputs) {
     try {
-      const { owner, repo, branch } = await this.getRepositoryConfig();
+      const { owner, branch } = await this.getRepositoryConfig();
 
-      const targetWorkflow = await this.getDeploymentWorkflow();
+      const repoName = inputs.modelName; // Вважаємо що modelName це тепер ім'я репозиторію
+
+      const targetWorkflow = await this.getDeploymentWorkflow(repoName);
 
       const targetWorkflowId = targetWorkflow?.id;
       if (!targetWorkflowId) throw new Error('Workflow not found');
@@ -301,7 +305,7 @@ export class GitHubService {
 
       await request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
         owner,
-        repo,
+        repo: repoName,
         workflow_id: targetWorkflowId,
         ref: branch,
         inputs,
@@ -315,7 +319,7 @@ export class GitHubService {
         'GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs?per_page=1&branch={branch}&event=workflow_dispatch',
         {
           owner,
-          repo,
+          repo: repoName,
           workflow_id: targetWorkflowId,
           branch,
           headers: { ...defaultHeaders }
@@ -332,16 +336,25 @@ export class GitHubService {
 
   public async getRepositories() {
     try {
-      const { owner, repo } = await this.getRepositoryConfig();
+      const { owner } = await this.getRepositoryConfig();
       const defaultHeaders = await this.buildDefaultHeaders();
 
-      const response = await request('GET /repos/{owner}/{repo}', {
-        owner,
-        repo,
-        headers: { ...defaultHeaders }
-      });
-
-      return [response.data];
+      try {
+        const response = await request('GET /users/{owner}/repos?sort=updated&per_page=100', {
+          owner,
+          headers: { ...defaultHeaders }
+        });
+        return response.data;
+      } catch (e: any) {
+        if (e.status === 404) {
+          const orgResponse = await request('GET /orgs/{owner}/repos?sort=updated&per_page=100', {
+            owner,
+            headers: { ...defaultHeaders }
+          });
+          return orgResponse.data;
+        }
+        throw e;
+      }
     } catch (error) {
       handleServiceError(error, 'Failed to fetch repositories');
       throw error;

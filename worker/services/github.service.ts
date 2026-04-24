@@ -27,6 +27,9 @@ export class GitHubService {
   private async getDeploymentWorkflow(repoName: string) {
     try {
       const { owner } = await this.getRepositoryConfig();
+      const workflowFilename = await this.getWorkflowFilename();
+
+      console.log(`[getDeploymentWorkflow] owner=${owner}, repo=${repoName}, filename=${workflowFilename}`);
 
       const defaultHeaders = await this.buildDefaultHeaders();
 
@@ -38,15 +41,21 @@ export class GitHubService {
         }
       });
 
-      const workflowFilename = await this.getWorkflowFilename();
       const filenameWithoutExt = workflowFilename.split('.')[0];
-      
+
+      console.log(`[getDeploymentWorkflow] found ${workflows.data.workflows?.length ?? 0} workflows:`,
+        workflows.data.workflows?.map((wf) => wf.path)
+      );
+
       const targetWorkflow = workflows.data.workflows?.find((wf) =>
         wf.path.includes(workflowFilename) || wf.path.includes(`${filenameWithoutExt}.yaml`) || wf.path.includes(`${filenameWithoutExt}.yml`)
       );
 
+      console.log(`[getDeploymentWorkflow] targetWorkflow id=${targetWorkflow?.id}, path=${targetWorkflow?.path}`);
+
       return targetWorkflow;
     } catch (error) {
+      console.error(`[getDeploymentWorkflow] ERROR for repo=${repoName}:`, error);
       handleServiceError(error, 'Failed to fetch workflow by name');
     }
   }
@@ -297,10 +306,13 @@ export class GitHubService {
       const repoName = inputs.siteName ?? inputs.modelName; // Використовуємо siteName (ім'я репо) або modelName як fallback
       if (!repoName) throw new Error('Repository name is required');
 
+      console.log(`[triggerDeployWorkflowRun] owner=${owner}, branch=${branch}, repoName=${repoName}`);
+
       const targetWorkflow = await this.getDeploymentWorkflow(repoName);
 
       const targetWorkflowId = targetWorkflow?.id;
-      if (!targetWorkflowId) throw new Error('Workflow not found');
+      console.log(`[triggerDeployWorkflowRun] targetWorkflowId=${targetWorkflowId}`);
+      if (!targetWorkflowId) throw new Error('Workflow not found in repo: ' + repoName);
 
       const defaultHeaders = await this.buildDefaultHeaders();
 

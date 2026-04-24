@@ -15,6 +15,9 @@ declare namespace Cloudflare {
     ASH_LIST_TASKS_CF_TOKEN?: SecretsStoreSecret;
     ASH_LIST_TASKS_CF_ACCOUNT_ID?: SecretsStoreSecret;
     ENVIRONMENT?: string;
+    ASSETS: any;
   }
 }
-interface Env extends Cloudflare.Env {}
+interface Env extends Cloudflare.Env {
+  ASSETS: any;
+}

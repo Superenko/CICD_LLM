@@ -7,7 +7,7 @@ import { handleApiError } from './utils/api';
 import { isDevMode } from './utils/misc';
 import apiRouter from './routes';
 
-const ALLOWED_ORIGINS = ['https://llm-app.brett-4e2.workers.dev'];
+const ALLOWED_ORIGINS = ['https://llm-app.superenko312.workers.dev'];
 
 if (isDevMode()) {
   ALLOWED_ORIGINS.push('http://localhost:5173');
@@ -31,6 +31,19 @@ app.onError((err, ctx) => {
 });
 
 app.route('/api', apiRouter);
+
+// SPA fallback: для всіх не-API маршрутів повертаємо index.html для React Router
+app.get('*', async (ctx) => {
+  const url = new URL(ctx.req.url);
+  // Пропускаємо файли зі статичних ресурсів (мають розширення)
+  if (url.pathname.includes('.')) {
+    return new Response('Not Found', { status: 404 });
+  }
+  // Для всіх SPA маршрутів — index.html
+  const indexRequest = new Request(new URL('/', ctx.req.url).toString(), ctx.req.raw);
+  const assetResponse = await ctx.env.ASSETS.fetch(indexRequest);
+  return assetResponse;
+});
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {

@@ -71,10 +71,26 @@ export const handleDeployProject = async (ctx: AuthContext) => {
 export const handleGetProjectLatestDeployment = async (ctx: AuthContext) => {
   const { name } = ctx.req.param();
 
-  const githubService = new GitHubService(ctx.env);
-  const project = await githubService.getLatestWorkflowRunJob(name);
+  try {
+    const githubService = new GitHubService(ctx.env);
+    const result = await githubService.getLatestWorkflowRunJob(name);
 
-  return ctx.json(project);
+    const workflowRunJob = result?.workflowRunJob ?? null;
+    const errorSummary = result?.errorSummary ?? null;
+
+    const deployment = {
+      project_name: name,
+      version: 1,
+      status: workflowRunJob?.status ?? null,
+      conclusion: workflowRunJob?.conclusion ?? null,
+      logs: workflowRunJob?.steps ?? null,
+      errorSummary: errorSummary ?? null
+    };
+
+    return ctx.json(deployment);
+  } catch (error) {
+    return ctx.json(handleApiError(error, 'Failed to fetch project deployment'), 500);
+  }
 };
 
 export const handleSyncProjects = async (ctx: AuthContext) => {

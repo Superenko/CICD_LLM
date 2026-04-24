@@ -1,7 +1,9 @@
 {
   "name": "llm-app",
   "compatibility_date": "2025-01-01",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "main": "./worker/index.ts",
   "assets": {
     "directory": "./dist",
@@ -22,12 +24,40 @@
     }
   ],
   "secrets_store_secrets": [
-    { "binding": "ASH_LIST_TASKS_EMAIL",         "secret_name": "ASH_LIST_TASKS_EMAIL",         "store_id": "646cc8aab9ca49cb99ce65243cdef98b" },
-    { "binding": "ASH_LIST_TASKS_PASSWORD",      "secret_name": "ASH_LIST_TASKS_PASSWORD",      "store_id": "646cc8aab9ca49cb99ce65243cdef98b" },
-    { "binding": "ASH_LIST_TASKS_GITHUB_TOKEN",  "secret_name": "ASH_LIST_TASKS_GITHUB_TOKEN",  "store_id": "646cc8aab9ca49cb99ce65243cdef98b" },
-    { "binding": "ASH_LIST_GITHUB_ORGANIZATION", "secret_name": "ASH_LIST_GITHUB_ORGANIZATION", "store_id": "646cc8aab9ca49cb99ce65243cdef98b" },
-    { "binding": "ASH_LIST_GITHUB_REPO",         "secret_name": "ASH_LIST_GITHUB_REPO",         "store_id": "646cc8aab9ca49cb99ce65243cdef98b" },
-    { "binding": "ASH_LIST_GITHUB_BRANCH",       "secret_name": "ASH_LIST_GITHUB_BRANCH",       "store_id": "646cc8aab9ca49cb99ce65243cdef98b" },
-    { "binding": "ASH_LIST_WORKFLOW_FILENAME",   "secret_name": "ASH_LIST_WORKFLOW_FILENAME",   "store_id": "646cc8aab9ca49cb99ce65243cdef98b" }
+    {
+      "binding": "ASH_LIST_TASKS_EMAIL",
+      "secret_name": "ASH_LIST_TASKS_EMAIL",
+      "store_id": "646cc8aab9ca49cb99ce65243cdef98b"
+    },
+    {
+      "binding": "ASH_LIST_TASKS_PASSWORD",
+      "secret_name": "ASH_LIST_TASKS_PASSWORD",
+      "store_id": "646cc8aab9ca49cb99ce65243cdef98b"
+    },
+    {
+      "binding": "ASH_LIST_TASKS_GITHUB_TOKEN",
+      "secret_name": "ASH_LIST_TASKS_GITHUB_TOKEN",
+      "store_id": "646cc8aab9ca49cb99ce65243cdef98b"
+    },
+    {
+      "binding": "ASH_LIST_GITHUB_ORGANIZATION",
+      "secret_name": "ASH_LIST_GITHUB_ORGANIZATION",
+      "store_id": "646cc8aab9ca49cb99ce65243cdef98b"
+    },
+    {
+      "binding": "ASH_LIST_GITHUB_REPO",
+      "secret_name": "ASH_LIST_GITHUB_REPO",
+      "store_id": "646cc8aab9ca49cb99ce65243cdef98b"
+    },
+    {
+      "binding": "ASH_LIST_GITHUB_BRANCH",
+      "secret_name": "ASH_LIST_GITHUB_BRANCH",
+      "store_id": "646cc8aab9ca49cb99ce65243cdef98b"
+    },
+    {
+      "binding": "ASH_LIST_WORKFLOW_FILENAME",
+      "secret_name": "ASH_LIST_WORKFLOW_FILENAME",
+      "store_id": "646cc8aab9ca49cb99ce65243cdef98b"
+    }
   ]
 }

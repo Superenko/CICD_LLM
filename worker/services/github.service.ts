@@ -294,7 +294,8 @@ export class GitHubService {
     try {
       const { owner, branch } = await this.getRepositoryConfig();
 
-      const repoName = inputs.modelName; // Вважаємо що modelName це тепер ім'я репозиторію
+      const repoName = inputs.siteName ?? inputs.modelName; // Використовуємо siteName (ім'я репо) або modelName як fallback
+      if (!repoName) throw new Error('Repository name is required');
 
       const targetWorkflow = await this.getDeploymentWorkflow(repoName);
 

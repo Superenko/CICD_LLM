@@ -19,7 +19,12 @@ export class OpenAIService {
 
   public async analyzeLogs(logs: string[]) {
     try {
-      const apiKey = await this.env.OPENAI_API_KEY?.get();
+      const rawKey = this.env.OPENAI_API_KEY;
+      const apiKey = rawKey
+        ? typeof (rawKey as any).get === 'function'
+          ? await (rawKey as any).get()
+          : (rawKey as unknown as string)
+        : undefined;
 
       if (!apiKey) {
         throw new Error('OpenAI API key is not configured.');

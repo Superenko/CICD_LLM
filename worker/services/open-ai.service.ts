@@ -35,13 +35,12 @@ export class OpenAIService {
       const url = `${GEMINI_API_BASE_URL}/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
       const body = {
-        systemInstruction: {
-          parts: [{ text: ERROR_LOGS_ANALYSIS_SYSTEM_PROMPT }]
-        },
         contents: [
           {
             role: 'user',
-            parts: [{ text: buildErrorLogsAnalysisPrompt(formattedLogs) }]
+            parts: [{ 
+              text: `${ERROR_LOGS_ANALYSIS_SYSTEM_PROMPT}\n\n${buildErrorLogsAnalysisPrompt(formattedLogs)}`
+            }]
           }
         ],
         generationConfig: {

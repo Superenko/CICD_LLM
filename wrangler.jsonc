@@ -64,5 +64,15 @@
       "secret_name": "ASH_LIST_WORKFLOW_FILENAME",
       "store_id": "646cc8aab9ca49cb99ce65243cdef98b"
     }
-  ]
+  ],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "persist": true,
+      "invocation_logs": true
+    }
+  }
 }

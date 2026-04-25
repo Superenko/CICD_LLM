@@ -30,6 +30,11 @@
       "store_id": "646cc8aab9ca49cb99ce65243cdef98b"
     },
     {
+      "binding": "OPENAI_API_KEY",
+      "secret_name": "OPENAI_API_KEY",
+      "store_id": "646cc8aab9ca49cb99ce65243cdef98b"
+    },
+    {
       "binding": "ASH_LIST_TASKS_PASSWORD",
       "secret_name": "ASH_LIST_TASKS_PASSWORD",
       "store_id": "646cc8aab9ca49cb99ce65243cdef98b"

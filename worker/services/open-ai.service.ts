@@ -2,7 +2,7 @@ import { handleServiceError } from '@/utils/api';
 import { ERROR_LOGS_ANALYSIS_SYSTEM_PROMPT, buildErrorLogsAnalysisPrompt } from '@/utils/prompts';
 
 const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
-const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_MODEL = 'gemini-2.5-flash-lite';
 const GEMINI_TEMPERATURE = 0.1;
 const MAX_LOGS_CHARS = 12000;
 

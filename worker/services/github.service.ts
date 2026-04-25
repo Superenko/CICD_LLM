@@ -152,19 +152,26 @@ export class GitHubService {
         throw new Error('Workflow run not found');
       }
 
+      console.log(`[LLM-flow] runId=${latestWorkflowRunId}, project=${projectName}`);
+
       const workflowRunLogs = await this.getWorkflowRunJobErrors(latestWorkflowRunId, projectName);
+      console.log(`[LLM-flow] errorLines=${workflowRunLogs?.errorLines?.length ?? 0}`);
+
       let errorSummary: string | null | undefined = null;
 
       const summaryKey = `${KV_RUN_SUMMARY_KEY}:${latestWorkflowRunId}`;
       const cachedSummary = await this.env.WORKFLOW_RUN_LOGS.get(summaryKey);
+      console.log(`[LLM-flow] cachedSummary=${!!cachedSummary}`);
 
       if (cachedSummary) {
         errorSummary = cachedSummary;
       } else if (workflowRunLogs?.errorLines?.length) {
         const logsArray = workflowRunLogs?.errorLines?.map((l) => l.line) ?? [];
+        console.log(`[LLM-flow] sending to Gemini:`, logsArray.slice(0, 3));
 
         const openAIService = new OpenAIService(this.env);
         const summary = await openAIService.analyzeLogs(logsArray);
+        console.log(`[LLM-flow] Gemini result="${summary?.slice(0, 100)}"`);
 
         errorSummary = summary ?? null;
 
@@ -173,6 +180,8 @@ export class GitHubService {
             expirationTtl: WEEK_TIME
           });
         }
+      } else {
+        console.log(`[LLM-flow] No error lines — skipping Gemini`);
       }
 
       const workflowRunJob = await this.getWorkflowRunJob(latestWorkflowRunId, projectName);
@@ -270,12 +279,15 @@ export class GitHubService {
       const { id: jobId, name: jobName } = workflowRunJob ?? {};
 
       const isFailedJob = workflowRunJob?.conclusion === 'failure';
+      console.log(`[LLM-flow] job conclusion="${workflowRunJob?.conclusion}", isFailedJob=${isFailedJob}, jobId=${jobId}`);
       if (!jobId || !isFailedJob) return null;
 
       const jobLogs = await this.getWorkflowRunJobLogs(jobId, repoName);
+      console.log(`[LLM-flow] jobLogs length=${jobLogs?.length ?? 0}`);
       if (!jobLogs) return null;
 
       const errorLines = extractErrorLines(jobLogs);
+      console.log(`[LLM-flow] extractErrorLines found=${errorLines.length}`, errorLines.slice(0, 3).map(l => l.line));
 
       const result: GithubWorkflowRunErrors = { jobId, jobName, errorLines };
 

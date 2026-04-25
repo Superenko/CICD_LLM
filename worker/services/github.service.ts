@@ -166,22 +166,25 @@ export class GitHubService {
       if (cachedSummary) {
         errorSummary = cachedSummary;
       } else if (workflowRunLogs?.errorLines?.length) {
-        const logsArray = workflowRunLogs?.errorLines?.map((l) => l.line) ?? [];
-        console.log(`[LLM-flow] sending to Gemini:`, logsArray.slice(0, 3));
+        const logsArray = workflowRunLogs.errorLines.map((l) => l.line);
+        console.log(`[LLM-flow] sending to Gemini ${logsArray.length} lines, first: "${logsArray[0]?.slice(0, 80)}"`);
 
         const openAIService = new OpenAIService(this.env);
-        const summary = await openAIService.analyzeLogs(logsArray);
-        console.log(`[LLM-flow] Gemini result="${summary?.slice(0, 100)}"`);
+        try {
+          const summary = await openAIService.analyzeLogs(logsArray);
+          console.log(`[LLM-flow] Gemini result="${summary?.slice(0, 150)}"`);
+          errorSummary = summary ?? null;
 
-        errorSummary = summary ?? null;
-
-        if (errorSummary) {
-          await this.env.WORKFLOW_RUN_LOGS.put(summaryKey, errorSummary, {
-            expirationTtl: WEEK_TIME
-          });
+          if (errorSummary) {
+            await this.env.WORKFLOW_RUN_LOGS.put(summaryKey, errorSummary, {
+              expirationTtl: WEEK_TIME
+            });
+          }
+        } catch (aiError) {
+          console.error('[LLM-flow] Gemini call failed:', aiError);
         }
       } else {
-        console.log(`[LLM-flow] No error lines — skipping Gemini`);
+        console.log(`[LLM-flow] No error lines and no fallback — skipping Gemini`);
       }
 
       const workflowRunJob = await this.getWorkflowRunJob(latestWorkflowRunId, projectName);
@@ -273,7 +276,8 @@ export class GitHubService {
         { type: 'json' }
       );
 
-      if (cachedRunErrors) return cachedRunErrors;
+      // Skip cache if it had empty errorLines (old run or no patterns matched)
+      if (cachedRunErrors && cachedRunErrors.errorLines.length > 0) return cachedRunErrors;
 
       const workflowRunJob = await this.getWorkflowRunJob(runId, repoName);
       const { id: jobId, name: jobName } = workflowRunJob ?? {};
@@ -283,17 +287,27 @@ export class GitHubService {
       if (!jobId || !isFailedJob) return null;
 
       const jobLogs = await this.getWorkflowRunJobLogs(jobId, repoName);
-      console.log(`[LLM-flow] jobLogs length=${jobLogs?.length ?? 0}`);
+      console.log(`[LLM-flow] jobLogs length=${jobLogs?.length ?? 0}, preview=${jobLogs?.slice(-200)}`);
       if (!jobLogs) return null;
 
-      const errorLines = extractErrorLines(jobLogs);
+      let errorLines = extractErrorLines(jobLogs);
       console.log(`[LLM-flow] extractErrorLines found=${errorLines.length}`, errorLines.slice(0, 3).map(l => l.line));
+
+      // Fallback: if no specific error patterns found, use last 50 lines of the log
+      if (errorLines.length === 0) {
+        const logLines = jobLogs.split(/\r?\n/).filter(Boolean);
+        const fallbackLines = logLines.slice(-50);
+        console.log(`[LLM-flow] Using fallback: last ${fallbackLines.length} lines`);
+        errorLines = fallbackLines.map((line, i) => ({ lineNumber: logLines.length - fallbackLines.length + i + 1, line: line.replace(/^\d{4}-\d{2}-\d{2}T[^\s]+Z\s+/, '').trim() })).filter(l => l.line);
+      }
 
       const result: GithubWorkflowRunErrors = { jobId, jobName, errorLines };
 
-      await this.env.WORKFLOW_RUN_LOGS.put(runErrorsKey, JSON.stringify(result), {
-        expirationTtl: WEEK_TIME
-      });
+      if (errorLines.length > 0) {
+        await this.env.WORKFLOW_RUN_LOGS.put(runErrorsKey, JSON.stringify(result), {
+          expirationTtl: WEEK_TIME
+        });
+      }
 
       return result;
     } catch (error) {

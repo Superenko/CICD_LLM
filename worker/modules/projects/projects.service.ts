@@ -59,13 +59,13 @@ export class ProjectsService {
     let deploymentAt = null;
 
     try {
-      const latestRunInfo = await this.githubService.getLatestWorkflowRunJob(repo.name);
-      if (latestRunInfo && latestRunInfo.workflowRunJob) {
-        deploymentStatus = latestRunInfo.workflowRunJob.conclusion ?? latestRunInfo.workflowRunJob.status;
-        deploymentAt = latestRunInfo.workflowRunJob.completed_at 
-          ? Math.floor(new Date(latestRunInfo.workflowRunJob.completed_at).getTime() / 1000)
-          : latestRunInfo.workflowRunJob.started_at
-          ? Math.floor(new Date(latestRunInfo.workflowRunJob.started_at).getTime() / 1000)
+      const latestRunInfo = await this.githubService.getLatestWorkflowRunInfo(repo.name);
+      if (latestRunInfo) {
+        deploymentStatus = latestRunInfo.conclusion ?? latestRunInfo.status;
+        deploymentAt = latestRunInfo.completed_at 
+          ? Math.floor(new Date(latestRunInfo.completed_at).getTime() / 1000)
+          : latestRunInfo.started_at
+          ? Math.floor(new Date(latestRunInfo.started_at).getTime() / 1000)
           : null;
       }
     } catch (error) {

@@ -136,6 +136,27 @@ export class GitHubService {
     return foundWorkflowRun;
   }
 
+  public async getLatestWorkflowRunInfo(projectName: string) {
+    try {
+      const workflowRunResponse = await this.getWorkflowRunByProjectName(projectName);
+      const { workflowRun: latestWorkflowRun } = workflowRunResponse ?? {};
+      let foundRun = latestWorkflowRun;
+
+      if (!foundRun?.id) {
+        foundRun = await this.searchLatestWorkflowRun(projectName);
+      }
+
+      return foundRun ? {
+        status: foundRun.status,
+        conclusion: foundRun.conclusion,
+        completed_at: foundRun.updated_at || null,
+        started_at: foundRun.created_at || null
+      } : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
   public async getLatestWorkflowRunJob(projectName: string) {
     try {
       const workflowRunResponse = await this.getWorkflowRunByProjectName(projectName);

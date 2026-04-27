@@ -32,9 +32,10 @@ export class ProjectsService {
     try {
       const repositories = await this.githubService.getRepositories();
       
-      const remoteProjects = await Promise.all(
-        repositories.map((repo: any) => this.mapGithubRepoToDB(repo))
-      );
+      const remoteProjects = [];
+      for (const repo of repositories) {
+        remoteProjects.push(await this.mapGithubRepoToDB(repo));
+      }
 
       const { upsertedCount } = await this.repository.bulkUpsert(remoteProjects);
       const { deletedCount } = await this.deleteMissingProjects(remoteProjects);

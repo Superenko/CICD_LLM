@@ -62,7 +62,8 @@ export const extractErrorLines = (logText: string): GithubJobErrorLine[] => {
       /\bProcess completed with exit code \d+\b/i,
       /\bExited with code \d+\b/i,
       /Traceback \(most recent call last\):/i,
-      /\b(TypeError|ReferenceError|SyntaxError|Exception):/i
+      /\b(TypeError|ReferenceError|SyntaxError|Exception):/i,
+      /^.*:\d+:\d+:\s+[A-Z]\d+\s+.*$/i
     ];
 
     for (let i = 0; i < logLines.length; i++) {

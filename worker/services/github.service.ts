@@ -210,7 +210,10 @@ export class GitHubService {
         }
       });
 
-      const workflowRunJob = jobs.data.jobs?.[0];
+      const allJobs = jobs.data.jobs ?? [];
+      const failedJob = allJobs.find(job => job.conclusion === 'failure');
+      const workflowRunJob = failedJob || allJobs[0];
+      
       return workflowRunJob;
     } catch (error) {
       handleServiceError(error, 'Failed to fetch workflow job by run id');

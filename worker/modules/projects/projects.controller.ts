@@ -103,6 +103,17 @@ export const handleSyncProjects = async (ctx: AuthContext) => {
   }
 };
 
+export const handleGetIncidents = async (ctx: AuthContext) => {
+  try {
+    const { results } = await ctx.env.ASH_LIST_TASKS_DB.prepare(
+      'SELECT id, project_name, run_id, category, solution, created_at FROM incidents ORDER BY created_at DESC LIMIT 100'
+    ).all();
+    return ctx.json(results || []);
+  } catch (error) {
+    return ctx.json(handleApiError(error, 'An unexpected error occurred during incidents fetch'), 500);
+  }
+};
+
 const parseProjectsQuery = (query: Record<string, string>) => {
   const { page, per_page } = query;
 

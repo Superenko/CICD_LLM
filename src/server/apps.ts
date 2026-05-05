@@ -28,6 +28,18 @@ export const getApps = async (page: number = 1) => {
   return apps;
 };
 
+export const getIncidents = async () => {
+  const response = await fetch(`/api/projects/incidents`, {
+    credentials: 'include'
+  });
+
+  if (!response.ok) {
+    await handleServerError(response, 'Failed to fetch incidents');
+  }
+
+  return response.json();
+};
+
 export const getModels = async (perPage: number = 10) => {
   const searchParams = new URLSearchParams({ per_page: perPage.toString() });
 

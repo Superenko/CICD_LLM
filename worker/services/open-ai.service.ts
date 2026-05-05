@@ -61,9 +61,33 @@ export class OpenAIService {
       }
 
       const data = await response.json<GeminiResponse>();
-      const message = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+      let message = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
-      return message ?? null;
+      if (!message) return null;
+
+      // Clean up markdown formatting if Gemini still included it despite prompt instructions
+      if (message.startsWith('```json')) {
+        message = message.substring(7);
+      }
+      if (message.startsWith('```')) {
+        message = message.substring(3);
+      }
+      if (message.endsWith('```')) {
+        message = message.substring(0, message.length - 3);
+      }
+      
+      message = message.trim();
+
+      try {
+        const parsed = JSON.parse(message);
+        return {
+          category: parsed.category || 'Unknown',
+          solution: parsed.solution || message
+        };
+      } catch (e) {
+        console.error('[GeminiService] Failed to parse JSON response:', message);
+        return { category: 'Unknown', solution: message };
+      }
     } catch (e) {
       handleServiceError(e, 'An unknown error occurred while summarizing error logs.');
     }

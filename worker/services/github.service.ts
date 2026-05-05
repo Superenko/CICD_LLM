@@ -178,14 +178,19 @@ export class GitHubService {
       const workflowRunLogs = await this.getWorkflowRunJobErrors(latestWorkflowRunId, projectName);
       console.log(`[LLM-flow] errorLines=${workflowRunLogs?.errorLines?.length ?? 0}`);
 
-      let errorSummary: string | null | undefined = null;
+      let errorSummary: { category: string; solution: string } | null | undefined = null;
 
       const summaryKey = `${KV_RUN_SUMMARY_KEY}:${latestWorkflowRunId}`;
       const cachedSummary = await this.env.WORKFLOW_RUN_LOGS.get(summaryKey);
       console.log(`[LLM-flow] cachedSummary=${!!cachedSummary}`);
 
       if (cachedSummary) {
-        errorSummary = cachedSummary;
+        try {
+          errorSummary = JSON.parse(cachedSummary);
+        } catch (e) {
+          // Fallback for old cached strings
+          errorSummary = { category: 'Unknown', solution: cachedSummary };
+        }
       } else if (workflowRunLogs?.errorLines?.length) {
         const logsArray = workflowRunLogs.errorLines.map((l) => l.line);
         console.log(`[LLM-flow] sending to Gemini ${logsArray.length} lines, first: "${logsArray[0]?.slice(0, 80)}"`);
@@ -193,13 +198,23 @@ export class GitHubService {
         const openAIService = new OpenAIService(this.env);
         try {
           const summary = await openAIService.analyzeLogs(logsArray);
-          console.log(`[LLM-flow] Gemini result="${summary?.slice(0, 150)}"`);
+          console.log(`[LLM-flow] Gemini result="${JSON.stringify(summary)}"`);
           errorSummary = summary ?? null;
 
           if (errorSummary) {
-            await this.env.WORKFLOW_RUN_LOGS.put(summaryKey, errorSummary, {
+            await this.env.WORKFLOW_RUN_LOGS.put(summaryKey, JSON.stringify(errorSummary), {
               expirationTtl: WEEK_TIME
             });
+            
+            // Save to D1 Database for analytics
+            try {
+              await this.env.ASH_LIST_TASKS_DB.prepare(
+                'INSERT INTO incidents (project_name, run_id, category, solution) VALUES (?, ?, ?, ?)'
+              ).bind(projectName, latestWorkflowRunId.toString(), errorSummary.category, errorSummary.solution).run();
+              console.log(`[LLM-flow] Saved incident to DB`);
+            } catch (dbError) {
+              console.error('[LLM-flow] Failed to save incident to DB:', dbError);
+            }
           }
         } catch (aiError) {
           console.error('[LLM-flow] Gemini call failed:', aiError);

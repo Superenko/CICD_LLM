@@ -13,7 +13,7 @@ interface AppDeploymentHeaderProps extends HTMLAttributes<HTMLDivElement> {
   appName: AppDeployment['project_name'];
   status?: GithubWorkflowJobStepStatus | null;
   conclusion?: GithubWorkflowJobStepConclusion | null;
-  deploymentError?: string | null;
+  deploymentError?: { category: string; solution: string } | string | null;
   version?: number;
   isDeploying: boolean;
 }
@@ -78,7 +78,14 @@ const AppDeploymentHeader = ({
 
       {deploymentError && (
         <div className="text-sm font-medium tracking-tight">
-          <p className="text-red-600">{deploymentError}</p>
+          {typeof deploymentError === 'object' && deploymentError !== null ? (
+            <div className="bg-red-50 p-4 rounded-md border border-red-100">
+              <p className="text-red-800 font-semibold mb-1">Error Category: {deploymentError.category}</p>
+              <p className="text-red-600">{deploymentError.solution}</p>
+            </div>
+          ) : (
+            <p className="text-red-600">{deploymentError}</p>
+          )}
         </div>
       )}
     </div>

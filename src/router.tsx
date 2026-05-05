@@ -3,7 +3,7 @@ import { createBrowserRouter } from 'react-router';
 import GuestRoute from './components/auth/GuestRoute';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import { DefaultLayout, GuestLayout } from './layouts';
-import { App, Dashboard } from './pages';
+import { App, Dashboard, Analytics } from './pages';
 import { Login } from './pages/auth/login';
 
 const router = createBrowserRouter([
@@ -32,6 +32,10 @@ const router = createBrowserRouter([
       {
         index: true,
         Component: Dashboard
+      },
+      {
+        path: '/analytics',
+        Component: Analytics
       },
       {
         path: '/:name',

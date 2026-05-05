@@ -4,6 +4,7 @@
 
 DROP TABLE IF EXISTS models;
 DROP TABLE IF EXISTS projects;
+DROP TABLE IF EXISTS incidents;
 
 CREATE TABLE IF NOT EXISTS models (
 	id INTEGER PRIMARY KEY AUTOINCREMENT, 
@@ -32,3 +33,12 @@ DROP INDEX IF EXISTS idx_projects_name;
 CREATE INDEX IF NOT EXISTS idx_projects_name ON projects(name);
 DROP INDEX IF EXISTS idx_projects_synced_at;
 CREATE INDEX IF NOT EXISTS idx_projects_synced_at ON projects(synced_at);
+
+CREATE TABLE IF NOT EXISTS incidents (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  project_name VARCHAR(75) NOT NULL,
+  run_id TEXT NOT NULL,
+  category VARCHAR(50) NOT NULL,
+  solution TEXT NOT NULL,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+);

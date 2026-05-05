@@ -10,5 +10,9 @@ export const NAV_LINKS: { label: string; to: To }[] = [
   {
     label: 'Dashboard',
     to: '/'
+  },
+  {
+    label: 'Analytics',
+    to: '/analytics'
   }
 ];

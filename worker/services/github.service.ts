@@ -236,7 +236,11 @@ export class GitHubService {
 
       const workflowRunJob = await this.getWorkflowRunJob(latestWorkflowRunId, projectName);
 
-      return { workflowRunJob, errorSummary };
+      return { 
+        workflowRunJob, 
+        errorSummary, 
+        workflowRunStatus: latestWorkflowRun?.status || workflowRunJob?.status 
+      };
     } catch (error) {
       handleServiceError(error, 'An unexpected error occurred while fetching latest workflow run');
       return null;

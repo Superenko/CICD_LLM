@@ -77,11 +77,18 @@ export const handleGetProjectLatestDeployment = async (ctx: AuthContext) => {
 
     const workflowRunJob = result?.workflowRunJob ?? null;
     const errorSummary = result?.errorSummary ?? null;
+    const workflowRunStatus = result?.workflowRunStatus ?? null;
+
+    // If the overall run is still in progress, show it as such, 
+    // even if the specific job is finished, to wait for the entire pipeline.
+    const effectiveStatus = workflowRunStatus !== 'completed' && workflowRunStatus !== null 
+      ? workflowRunStatus 
+      : (workflowRunJob?.status ?? null);
 
     const deployment = {
       project_name: name,
       version: 1,
-      status: workflowRunJob?.status ?? null,
+      status: effectiveStatus,
       conclusion: workflowRunJob?.conclusion ?? null,
       logs: workflowRunJob?.steps ?? null,
       errorSummary: errorSummary ?? null

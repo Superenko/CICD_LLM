@@ -10,7 +10,8 @@ export const checkIfDeploying = (status: GithubWorkflowJobStepStatus) => {
     'queued',
     'in_progress',
     'waiting',
-    'pending'
+    'pending',
+    'requested'
   ];
 
   return progressStatuses.includes(status);

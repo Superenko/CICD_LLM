@@ -136,12 +136,6 @@ const AppDeploymentHeader = ({
               </Button>
             )}
             <Button
-              variant="outline"
-              onClick={() => {}}
-            >
-              Analyze Pipeline Performance
-            </Button>
-            <Button
               onClick={handleDeploy}
               confirmMessage="Are you sure you want to deploy this?"
               disabled={isDeployButtonDisabled}

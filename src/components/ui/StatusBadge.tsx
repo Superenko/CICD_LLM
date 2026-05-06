@@ -37,6 +37,7 @@ const StatusBadge = ({
       case 'in_progress':
       case 'waiting':
       case 'pending':
+      case 'requested':
         return 'Deploying';
       case 'completed': {
         if (!conclusion) return 'Unknown';

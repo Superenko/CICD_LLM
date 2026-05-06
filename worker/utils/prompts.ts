@@ -2,19 +2,24 @@ export const ERROR_LOGS_ANALYSIS_SYSTEM_PROMPT =
   'You are an expert DevOps engineer and developer conducting a Root Cause Analysis for a failed CI/CD pipeline. ' +
   'Your primary goal is to provide a concrete, real solution that will actually make the code run and fix the blocking problem. ' +
   'IMPORTANT RULES:\n' +
-  '1. Focus ONLY on fatal errors (runtime exceptions, broken imports, missing dependencies, build/test failures). IGNORE cosmetic code style warnings (flake8, eslint) unless they strictly break the build.\n' +
-  '2. Do NOT provide vague advice. The "solution" field MUST contain an actionable fix. The "actionable_commands" field MUST list exact, copy-pasteable shell commands.\n' +
-  '3. Use EXACT paths and module names extracted directly from the logs. NEVER use placeholders.\n' +
-  '4. Severity levels: "Low" (style-only), "Medium" (test logic), "High" (broken import/dep), "Critical" (app cannot start).\n' +
-  'Your responses MUST be strictly valid JSON. Do not add markdown blocks like ```json around the response.\n' +
-  'The JSON MUST have EXACTLY these fields:\n' +
-  '"category" (string, e.g. "Dependency Issue", "Syntax Error", "Build Error", "Runtime Error", "Auth Failure"),\n' +
-  '"severity" (string: "Low" | "Medium" | "High" | "Critical"),\n' +
-  '"root_cause" (string: concise 1-2 sentence explanation of what caused the failure),\n' +
-  '"solution" (string: clear actionable description of how to fix it),\n' +
-  '"actionable_commands" (array of strings: exact shell commands to run, no placeholders).';
+  '1. Analyze BOTH the error logs and the provided CI/CD configuration (.yaml). Sometimes the fix is in the code, but often it is in the pipeline configuration itself (e.g., incorrect version of Python, missing environment variables, or overly strict linting rules).\n' +
+  '2. Focus ONLY on fatal errors. IGNORE cosmetic warnings unless they are the reason the build is failing (e.g., if the CI is configured to fail on any linting warning).\n' +
+  '3. The "solution" field MUST be actionable. If the fix is in the CI/CD YAML, specify exactly what to change. The "actionable_commands" field MUST list exact commands.\n' +
+  '4. Severity levels: "Low" (style/non-critical), "Medium" (test/logic), "High" (broken import/config), "Critical" (security/systemic failure).\n' +
+  'Your responses MUST be strictly valid JSON without markdown blocks.\n' +
+  'Fields: "category", "severity", "root_cause", "solution", "actionable_commands".';
 
-export const buildErrorLogsAnalysisPrompt = (logs: string): string => {
-  return `Analyze the following CI/CD pipeline failure logs. The logs are provided as a JSON array of objects, where each object represents an error line along with its surrounding code context (lines before and after).\n\nIdentify the PRIMARY BLOCKING error that caused the pipeline to crash or fail. Provide a real, effective solution that will successfully make the code run. Include exact shell commands if needed.\n\nReturn ONLY a valid JSON object with these fields: "category", "severity", "root_cause", "solution", "actionable_commands".\n\nLogs:\n\n\`\`\`json\n${logs}\n\`\`\``;
+export const buildErrorLogsAnalysisPrompt = (logs: string, workflowYaml?: string): string => {
+  let prompt = `Analyze the following CI/CD pipeline failure logs.`;
+  
+  if (workflowYaml) {
+    prompt += `\n\nI have also provided the CI/CD configuration file (.yaml) for this pipeline. Check if the error is caused by a misconfiguration or if the pipeline can be optimized to avoid this issue (e.g., by making linting non-fatal or adding a missing dependency in the workflow file).\n\nWorkflow YAML:\n\`\`\`yaml\n${workflowYaml}\n\`\`\``;
+  }
+
+  prompt += `\n\nLogs (JSON format with context):\n\`\`\`json\n${logs}\n\`\`\``;
+  
+  prompt += `\n\nIdentify the PRIMARY BLOCKING error. Provide a real, effective solution. Return ONLY valid JSON.`;
+  
+  return prompt;
 };
 

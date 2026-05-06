@@ -195,8 +195,9 @@ export class GitHubService {
         console.log(`[LLM-flow] sending to Gemini ${workflowRunLogs.errorLines.length} errors, first: "${workflowRunLogs.errorLines[0]?.line.slice(0, 80)}"`);
 
         const openAIService = new OpenAIService(this.env);
+        const workflowYaml = await this.getWorkflowYamlContent(projectName);
         try {
-          const summary = await openAIService.analyzeLogs(workflowRunLogs.errorLines);
+          const summary = await openAIService.analyzeLogs(workflowRunLogs.errorLines, workflowYaml ?? undefined);
           console.log(`[LLM-flow] Gemini result="${JSON.stringify(summary)}"`);
           errorSummary = summary ?? null;
 
@@ -463,6 +464,33 @@ export class GitHubService {
     const workflowFilename = await this.env.ASH_LIST_WORKFLOW_FILENAME.get();
     if (!workflowFilename) throw new Error('Workflow filename is not configured.');
     return workflowFilename;
+  }
+
+  public async getWorkflowYamlContent(repoName: string) {
+    try {
+      const { owner } = await this.getRepositoryConfig();
+      const workflowFilename = await this.getWorkflowFilename();
+      const githubToken = await this.getGitHubToken();
+
+      const response = await request('GET /repos/{owner}/{repo}/contents/{path}', {
+        owner,
+        repo: repoName,
+        path: `.github/workflows/${workflowFilename}`,
+        headers: {
+          authorization: `token ${githubToken}`
+        }
+      });
+
+      const data = response.data as any;
+      if (data.content && data.encoding === 'base64') {
+        // Decode base64 content
+        return atob(data.content.replace(/\n/g, ''));
+      }
+      return null;
+    } catch (error) {
+      console.error('[GitHubService] Failed to fetch workflow YAML:', error);
+      return null;
+    }
   }
 
   private async buildDefaultHeaders(): Promise<HeadersInit> {

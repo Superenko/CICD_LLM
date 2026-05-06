@@ -18,7 +18,7 @@ interface GeminiResponse {
 export class OpenAIService {
   constructor(private readonly env: Env) {}
 
-  public async analyzeLogs(logs: GithubJobErrorLine[]) {
+  public async analyzeLogs(logs: GithubJobErrorLine[], workflowYaml?: string) {
     try {
       const rawKey = this.env.OPENAI_API_KEY;
       const apiKey = rawKey
@@ -42,7 +42,7 @@ export class OpenAIService {
         contents: [
           {
             role: 'user',
-            parts: [{ text: buildErrorLogsAnalysisPrompt(formattedLogs) }]
+            parts: [{ text: buildErrorLogsAnalysisPrompt(formattedLogs, workflowYaml) }]
           }
         ],
         generationConfig: {

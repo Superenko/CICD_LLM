@@ -83,7 +83,10 @@ export class OpenAIService {
         const parsed = JSON.parse(message);
         return {
           category: parsed.category || 'Unknown',
-          solution: parsed.solution || message
+          severity: parsed.severity ?? undefined,
+          root_cause: parsed.root_cause ?? undefined,
+          solution: parsed.solution || message,
+          actionable_commands: Array.isArray(parsed.actionable_commands) ? parsed.actionable_commands : undefined
         };
       } catch (e) {
         console.error('[GeminiService] Failed to parse JSON response:', message);

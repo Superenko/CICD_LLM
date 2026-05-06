@@ -178,7 +178,7 @@ export class GitHubService {
       const workflowRunLogs = await this.getWorkflowRunJobErrors(latestWorkflowRunId, projectName);
       console.log(`[LLM-flow] errorLines=${workflowRunLogs?.errorLines?.length ?? 0}`);
 
-      let errorSummary: { category: string; solution: string } | null | undefined = null;
+      let errorSummary: { category: string; severity?: string; root_cause?: string; solution: string; actionable_commands?: string[] } | null | undefined = null;
 
       const summaryKey = `${KV_RUN_SUMMARY_KEY}:${latestWorkflowRunId}`;
       const cachedSummary = await this.env.WORKFLOW_RUN_LOGS.get(summaryKey);
@@ -204,12 +204,23 @@ export class GitHubService {
             await this.env.WORKFLOW_RUN_LOGS.put(summaryKey, JSON.stringify(errorSummary), {
               expirationTtl: WEEK_TIME
             });
-            
+
             // Save to D1 Database for analytics
             try {
+              const cmds = Array.isArray(errorSummary.actionable_commands)
+                ? JSON.stringify(errorSummary.actionable_commands)
+                : null;
               await this.env.ASH_LIST_TASKS_DB.prepare(
-                'INSERT INTO incidents (project_name, run_id, category, solution) VALUES (?, ?, ?, ?)'
-              ).bind(projectName, latestWorkflowRunId.toString(), errorSummary.category, errorSummary.solution).run();
+                'INSERT INTO incidents (project_name, run_id, category, severity, root_cause, solution, actionable_commands) VALUES (?, ?, ?, ?, ?, ?, ?)'
+              ).bind(
+                projectName,
+                latestWorkflowRunId.toString(),
+                errorSummary.category,
+                errorSummary.severity ?? null,
+                errorSummary.root_cause ?? null,
+                errorSummary.solution,
+                cmds
+              ).run();
               console.log(`[LLM-flow] Saved incident to DB`);
             } catch (dbError) {
               console.error('[LLM-flow] Failed to save incident to DB:', dbError);

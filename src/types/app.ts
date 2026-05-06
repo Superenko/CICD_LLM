@@ -14,7 +14,7 @@ export interface AppDeployment extends Pick<Deployment, 'project_name'> {
   conclusion: GithubWorkflowJobStepConclusion | null;
   version: number;
   logs: GithubWorkflowJobStep[] | null;
-  errorSummary: { category: string; solution: string } | string | null;
+  errorSummary: { category: string; severity?: string; root_cause?: string; solution: string; actionable_commands?: string[] } | string | null;
 }
 
 export interface AppsData {

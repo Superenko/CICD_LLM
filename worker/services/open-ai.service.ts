@@ -1,5 +1,6 @@
 import { handleServiceError } from '@/utils/api';
 import { ERROR_LOGS_ANALYSIS_SYSTEM_PROMPT, buildErrorLogsAnalysisPrompt } from '@/utils/prompts';
+import { GithubJobErrorLine } from '@/types/github';
 
 const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 const GEMINI_MODEL = 'gemini-2.5-flash-lite';
@@ -17,7 +18,7 @@ interface GeminiResponse {
 export class OpenAIService {
   constructor(private readonly env: Env) {}
 
-  public async analyzeLogs(logs: string[]) {
+  public async analyzeLogs(logs: GithubJobErrorLine[]) {
     try {
       const rawKey = this.env.OPENAI_API_KEY;
       const apiKey = rawKey
@@ -93,13 +94,29 @@ export class OpenAIService {
     }
   }
 
-  private formatLogs(logs: string[]): string {
-    if (logs.length === 0) return '';
+  private formatLogs(logs: GithubJobErrorLine[]): string {
+    if (logs.length === 0) return '[]';
 
-    const formattedLogs = logs.join('\n');
+    const formattedLogs = JSON.stringify(logs, null, 2);
 
     if (formattedLogs.length > MAX_LOGS_CHARS) {
-      return formattedLogs.slice(-MAX_LOGS_CHARS);
+      // If it's too long, maybe just truncate the string.
+      // But since it's JSON, truncating string might break JSON format.
+      // Alternatively, we could slice the array before stringifying.
+      // Let's slice the array to the last N elements and try stringifying again, but for now we'll just truncate the string and let the LLM handle broken JSON if it happens.
+      // Better approach: limit the number of logs sent to fit within chars.
+      let result = [];
+      let currentLength = 0;
+      for (let i = logs.length - 1; i >= 0; i--) {
+        const itemStr = JSON.stringify(logs[i], null, 2);
+        if (currentLength + itemStr.length < MAX_LOGS_CHARS) {
+          result.unshift(logs[i]);
+          currentLength += itemStr.length;
+        } else {
+          break;
+        }
+      }
+      return JSON.stringify(result, null, 2);
     }
 
     return formattedLogs;

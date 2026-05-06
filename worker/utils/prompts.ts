@@ -11,6 +11,6 @@ export const ERROR_LOGS_ANALYSIS_SYSTEM_PROMPT =
   '"solution" (A clear, actionable fix containing exact commands to run or files to edit).';
 
 export const buildErrorLogsAnalysisPrompt = (logs: string): string => {
-  return `Analyze the following CI/CD pipeline failure logs. Identify the PRIMARY BLOCKING error that caused the pipeline to crash or fail. Provide a real, effective solution that will successfully make the code run. Include exact shell commands if needed.\n\nReturn ONLY a valid JSON object with "category" and "solution" fields.\n\nLogs:\n\n\`\`\`\n${logs}\n\`\`\``;
+  return `Analyze the following CI/CD pipeline failure logs. The logs are provided as a JSON array of objects, where each object represents an error line along with its surrounding code context (lines before and after).\n\nIdentify the PRIMARY BLOCKING error that caused the pipeline to crash or fail. Provide a real, effective solution that will successfully make the code run. Include exact shell commands if needed.\n\nReturn ONLY a valid JSON object with "category" and "solution" fields.\n\nLogs:\n\n\`\`\`json\n${logs}\n\`\`\``;
 };
 

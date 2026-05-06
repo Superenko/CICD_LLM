@@ -192,12 +192,11 @@ export class GitHubService {
           errorSummary = { category: 'Unknown', solution: cachedSummary };
         }
       } else if (workflowRunLogs?.errorLines?.length) {
-        const logsArray = workflowRunLogs.errorLines.map((l) => l.line);
-        console.log(`[LLM-flow] sending to Gemini ${logsArray.length} lines, first: "${logsArray[0]?.slice(0, 80)}"`);
+        console.log(`[LLM-flow] sending to Gemini ${workflowRunLogs.errorLines.length} errors, first: "${workflowRunLogs.errorLines[0]?.line.slice(0, 80)}"`);
 
         const openAIService = new OpenAIService(this.env);
         try {
-          const summary = await openAIService.analyzeLogs(logsArray);
+          const summary = await openAIService.analyzeLogs(workflowRunLogs.errorLines);
           console.log(`[LLM-flow] Gemini result="${JSON.stringify(summary)}"`);
           errorSummary = summary ?? null;
 

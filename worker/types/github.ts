@@ -46,6 +46,7 @@ export type GithubDeploymentWorkflowInputs = {
 export interface GithubJobErrorLine {
   lineNumber: number;
   line: string;
+  context?: string[];
 }
 
 export interface GithubWorkflowRunErrors {

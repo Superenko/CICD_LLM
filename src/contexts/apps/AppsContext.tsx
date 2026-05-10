@@ -6,7 +6,6 @@ import type {
   AppDeploymentTriggerState,
   AppsData,
   AppsState,
-  ModelsState,
   NewAppState
 } from '@/types/app';
 
@@ -14,7 +13,6 @@ import {
   createApp,
   getAppDeployment,
   getApps,
-  getModels,
   triggerAppDeployment
 } from '@/server/apps';
 
@@ -47,14 +45,6 @@ export const AppsProvider = ({ children }: { children: ReactNode }) => {
     createAppError: null
   });
 
-  const [modelsState, setModelsState] = useState<ModelsState>({
-    modelsData: {
-      models: [],
-      metadata: { page: 1, per_page: 10, count: 0, total_count: 0, total_pages: 0 }
-    },
-    isModelsLoading: true,
-    modelsError: null
-  });
 
   const fetchApps = useCallback(async (page: number = 1, isLoadMore: boolean = false) => {
     try {
@@ -136,46 +126,8 @@ export const AppsProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const fetchModels = useCallback(async () => {
-    try {
-      setModelsState((prev) => ({
-        ...prev,
-        isModelsLoading: true,
-        modelsError: null
-      }));
 
-      const modelsData = await getModels(10000); // TODO: Remove this once we have a proper pagination
-      console.log('modelsData', modelsData);
-      setModelsState((prev) => ({
-        ...prev,
-        modelsData,
-        modelsError: null
-      }));
-
-      return modelsData;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Failed to fetch models. Please, reload the page or try again later.';
-
-      setModelsState((prev) => ({
-        ...prev,
-        modelsData: {
-          models: [],
-          metadata: { page: 1, per_page: 10, count: 0, total_count: 0, total_pages: 0 }
-        },
-        modelsError: errorMessage
-      }));
-    } finally {
-      setModelsState((prev) => ({
-        ...prev,
-        isModelsLoading: false
-      }));
-    }
-  }, []);
-
-  const handleCreateApp = useCallback(async (modelName: string) => {
+  const handleCreateApp = useCallback(async (inputs: Record<string, string>) => {
     try {
       setCreatedAppState((prev) => ({
         ...prev,
@@ -183,7 +135,7 @@ export const AppsProvider = ({ children }: { children: ReactNode }) => {
         createAppError: null
       }));
 
-      const newApp = await createApp({ modelName });
+      const newApp = await createApp(inputs);
 
       setCreatedAppState((prev) => ({
         ...prev,
@@ -256,10 +208,8 @@ export const AppsProvider = ({ children }: { children: ReactNode }) => {
     appDeploymentState,
     appDeploymentTriggerState,
     createdAppState,
-    modelsState,
     fetchApps,
     fetchLatestAppDeployment,
-    fetchModels,
     createApp: handleCreateApp,
     deployApp
   };

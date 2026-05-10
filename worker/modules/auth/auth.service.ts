@@ -11,28 +11,29 @@ class AuthService {
   }
 
   public async generateJWT(): Promise<string> {
-    const secret = this.getJwtSecret();
+    const secret = await this.getJwtSecret();
     const payload = {
       // Token valid for 7 days
       exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7,
       role: 'admin'
     };
-    return await sign(payload, secret);
+    return await sign(payload, secret, 'HS256');
   }
 
   public async verifyJWT(token: string): Promise<boolean> {
     try {
-      const secret = this.getJwtSecret();
-      await verify(token, secret);
+      const secret = await this.getJwtSecret();
+      await verify(token, secret, 'HS256');
       return true;
     } catch (e) {
       return false;
     }
   }
 
-  private getJwtSecret(): string {
+  private async getJwtSecret(): Promise<string> {
     // Fallback to email if JWT_SECRET is not set (for backwards compatibility during migration)
-    return this.env.JWT_SECRET || (this.env.ASH_LIST_TASKS_EMAIL as unknown as string) || 'default-secret';
+    const fallbackSecret = await this.env.ASH_LIST_TASKS_EMAIL.get();
+    return this.env.JWT_SECRET || fallbackSecret || 'default-secret';
   }
 
   private parseCredentialsFromBasicAuth(

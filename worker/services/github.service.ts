@@ -221,7 +221,7 @@ export class GitHubService {
       const workflowRunLogs = await this.getWorkflowRunJobErrors(latestWorkflowRunId, projectName);
       console.log(`[LLM-flow] errorLines=${workflowRunLogs?.errorLines?.length ?? 0}`);
 
-      let errorSummary: { category: string; severity?: string; root_cause?: string; solution: string; actionable_commands?: string[] } | null | undefined = null;
+      let errorSummary: { category: string; severity?: string; root_cause?: string; solution: string; actionable_commands?: string[]; confidence_score?: number } | null | undefined = null;
 
       const openAIService = new OpenAIService(this.env);
       const workflowYaml = await this.getWorkflowYamlContent(projectName);
@@ -428,7 +428,7 @@ export class GitHubService {
     try {
       const { owner, branch } = await this.getRepositoryConfig();
 
-      const repoName = inputs.siteName ?? inputs.modelName; // Використовуємо siteName (ім'я репо) або modelName як fallback
+      const repoName = inputs.siteName;
       if (!repoName) throw new Error('Repository name is required');
 
       const targetWorkflow = await this.getDeploymentWorkflow(repoName);

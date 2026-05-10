@@ -57,6 +57,13 @@ class AuthService {
     try {
       const { email, password } = credentials;
 
+      if (password.length < 8) {
+        return { success: false, error: 'Password must be at least 8 characters long' };
+      }
+      if (!/\d/.test(password) || !/[a-zA-Z]/.test(password)) {
+        return { success: false, error: 'Password must contain at least one letter and one number' };
+      }
+
       // Check if email already exists
       const existingUser = await this.env.ASH_LIST_TASKS_DB.prepare(
         'SELECT id FROM users WHERE email = ?'

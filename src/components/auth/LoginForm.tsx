@@ -32,60 +32,86 @@ const LoginForm = (props: FormHTMLAttributes<HTMLFormElement>) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} {...props}>
+    <form onSubmit={handleSubmit} {...props} className="flex flex-col">
+      <div className="mb-6 flex w-full rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
+        <button
+          type="button"
+          onClick={() => setIsRegisterMode(false)}
+          className={`flex-1 rounded-md py-2 text-sm font-semibold transition-all duration-200 ease-in-out ${
+            !isRegisterMode
+              ? 'bg-indigo-600 text-white shadow-md'
+              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+          }`}
+          disabled={isLoading}
+        >
+          Log In
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsRegisterMode(true)}
+          className={`flex-1 rounded-md py-2 text-sm font-semibold transition-all duration-200 ease-in-out ${
+            isRegisterMode
+              ? 'bg-indigo-600 text-white shadow-md'
+              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+          }`}
+          disabled={isLoading}
+        >
+          Register
+        </button>
+      </div>
+
       {error && (
-        <div className="mb-3 text-red-600">
-          <div className="font-medium">Whoops! Something went wrong.</div>
-          <p className="mt-1.5 text-sm">{error}</p>
+        <div className="mb-4 text-sm font-medium text-red-500 dark:text-red-400">
+          {error}
         </div>
       )}
 
-      <div>
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          className="mt-1 block w-full"
-          type="email"
-          name="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoFocus
-          autoComplete="username"
-          disabled={isLoading}
-        />
+      <div className="flex flex-col gap-4">
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            className="mt-1 block w-full transition-all duration-200 focus:ring-2 focus:ring-blue-500/20"
+            type="email"
+            name="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoFocus
+            autoComplete="username"
+            disabled={isLoading}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            className="mt-1 block w-full transition-all duration-200 focus:ring-2 focus:ring-blue-500/20"
+            type="password"
+            name="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
+            disabled={isLoading}
+          />
+          {isRegisterMode && (
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Password must be at least 8 characters long and contain at least one letter and one number.
+            </p>
+          )}
+        </div>
       </div>
 
-      <div className="mt-4">
-        <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          className="mt-1 block w-full"
-          type="password"
-          name="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
-          disabled={isLoading}
-        />
-      </div>
-
-      <div className="mt-6 flex flex-col items-center justify-between gap-4 sm:flex-row sm:gap-0">
-        <button
-          type="button"
-          onClick={() => setIsRegisterMode(!isRegisterMode)}
-          className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-          disabled={isLoading}
-        >
-          {isRegisterMode ? 'Already have an account? Log in' : "Don't have an account? Register"}
-        </button>
+      <div className="mt-8 flex justify-end">
         <Button
           type="submit"
+          className="w-full sm:w-auto"
           disabled={isLoading}
           icon={isLoading ? <Loading className="size-5 text-white" /> : null}
         >
-          {isRegisterMode ? 'Register' : 'Log In'}
+          {isRegisterMode ? 'Create Account' : 'Log In'}
         </Button>
       </div>
     </form>

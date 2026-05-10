@@ -30,10 +30,14 @@ export const login = async (credentials: LoginCredentials) => {
 
   if (response.ok) {
     const data: AuthenticationResponse = await response.json();
-    return data.isAuthenticated;
+    if (!data.isAuthenticated) {
+      throw new Error('Incorrect email or password');
+    }
+    return true;
+  } else {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Incorrect email or password');
   }
-
-  return false;
 };
 
 export const register = async (credentials: LoginCredentials) => {

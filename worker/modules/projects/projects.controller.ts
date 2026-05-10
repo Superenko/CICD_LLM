@@ -1,4 +1,4 @@
-import ModelsService from '@/modules/models/models.service';
+
 import { GitHubService } from '@/services/github.service';
 import { AuthContext } from '@/types/context';
 import { GithubDeploymentWorkflowInputs } from '@/types/github';
@@ -27,21 +27,13 @@ export const handleGetProjects = async (ctx: AuthContext) => {
 export const handleCreateProject = async (ctx: AuthContext) => {
   try {
     const projectData = await ctx.req.json<GithubDeploymentWorkflowInputs>();
-    if (!projectData.modelName) {
-      throw new Error('Model name is required');
-    }
 
     const githubService = new GitHubService(ctx.env);
     const result = await githubService.triggerDeployWorkflowRun(projectData);
 
     const projectsService = new ProjectsService(ctx.env);
-    const modelsService = new ModelsService(ctx.env);
-
     ctx.executionCtx.waitUntil(
-      Promise.all([
-        projectsService.syncProjectsFromGithubRepos(),
-        modelsService.syncModels()
-      ]).catch(console.error)
+      projectsService.syncProjectsFromGithubRepos().catch(console.error)
     );
 
     return ctx.json(result);

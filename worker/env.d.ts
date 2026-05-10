@@ -10,8 +10,7 @@ declare namespace Cloudflare {
     ASH_LIST_GITHUB_BRANCH: SecretsStoreSecret;
     ASH_LIST_WORKFLOW_FILENAME: SecretsStoreSecret;
     OPENAI_API_KEY?: SecretsStoreSecret;
-    ASH_LIST_AIRTABLE_BASE_ID?: SecretsStoreSecret;
-    ASH_LIST_AIRTABLE_KEY?: SecretsStoreSecret;
+    JWT_SECRET?: string;
     ASH_LIST_TASKS_CF_TOKEN?: SecretsStoreSecret;
     ASH_LIST_TASKS_CF_ACCOUNT_ID?: SecretsStoreSecret;
     ENVIRONMENT?: string;

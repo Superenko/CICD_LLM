@@ -36,6 +36,29 @@ export const login = async (credentials: LoginCredentials) => {
   return false;
 };
 
+export const register = async (credentials: LoginCredentials) => {
+  const { email, password } = credentials;
+
+  const authHeader = btoa(`${email}:${password}`);
+
+  const response = await fetch('/api/auth/register', {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${authHeader}`,
+      'Content-Type': 'application/json'
+    },
+    credentials: 'include'
+  });
+
+  if (response.ok) {
+    const data: AuthenticationResponse = await response.json();
+    return data.isAuthenticated;
+  } else {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'Registration failed');
+  }
+};
+
 export const logout = async () => {
   const logoutResponse = await fetch('/api/auth/logout', {
     method: 'POST',

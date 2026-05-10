@@ -17,10 +17,11 @@ export const handleLogin = async (ctx: AppContext) => {
     }
 
     const authService = new AuthService(ctx.env);
-    const isAuthenticated = await authService.isAuthenticated(authToken);
+    const isAuthenticated = await authService.validateCredentialsFromBasicAuth(authToken);
 
     if (isAuthenticated) {
-      setAuthCookie(ctx, authToken);
+      const jwt = await authService.generateJWT();
+      setAuthCookie(ctx, jwt);
     } else {
       deleteCookie(ctx, AUTH_COOKIE_NAME);
     }
@@ -31,12 +32,37 @@ export const handleLogin = async (ctx: AppContext) => {
   }
 };
 
+export const handleRegister = async (ctx: AppContext) => {
+  try {
+    const authToken = extractAuthToken(ctx);
+
+    if (!authToken) {
+      return ctx.json({ error: 'Unauthorized' }, ErrorStatusCode.UNAUTHORIZED);
+    }
+
+    const authService = new AuthService(ctx.env);
+    const result = await authService.register(authToken);
+
+    if (result.success) {
+      // Auto-login after successful registration
+      const jwt = await authService.generateJWT();
+      setAuthCookie(ctx, jwt);
+      return ctx.json({ success: true, isAuthenticated: true });
+    } else {
+      return ctx.json({ error: result.error }, ErrorStatusCode.BAD_REQUEST);
+    }
+  } catch (error) {
+    return ctx.json(handleApiError(error, 'An unexpected error occurred during registration'), 500);
+  }
+};
+
 export const handleVerifyAuthentication = async (ctx: AuthContext) => {
   try {
     const authService = new AuthService(ctx.env);
-    const isAuthenticated = await authService.isAuthenticated(ctx.var.authToken);
+    const isAuthenticated = await authService.verifyJWT(ctx.var.authToken);
 
     if (isAuthenticated) {
+      // Renew cookie expiration
       setAuthCookie(ctx, ctx.var.authToken);
     } else {
       deleteCookie(ctx, AUTH_COOKIE_NAME);

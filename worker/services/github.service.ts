@@ -146,14 +146,57 @@ export class GitHubService {
         foundRun = await this.searchLatestWorkflowRun(projectName);
       }
 
-      return foundRun ? {
-        status: foundRun.status,
-        conclusion: foundRun.conclusion,
-        completed_at: foundRun.updated_at || null,
-        started_at: foundRun.created_at || null
-      } : null;
+      if (foundRun) {
+        // Optimistically save the latest run when fetching project info
+        this.saveWorkflowRunToDB(foundRun, projectName).catch(console.error);
+        
+        return {
+          status: foundRun.status,
+          conclusion: foundRun.conclusion,
+          completed_at: foundRun.updated_at || null,
+          started_at: foundRun.created_at || null
+        };
+      }
+      return null;
     } catch (error) {
       return null;
+    }
+  }
+
+  private async saveWorkflowRunToDB(workflowRun: GithubWorkflowRun, projectName: string, workflowRunJob?: GithubWorkflowRunJob | null) {
+    try {
+      const startedAt = workflowRun.created_at ? Math.floor(new Date(workflowRun.created_at).getTime() / 1000) : null;
+      const completedAt = workflowRun.updated_at ? Math.floor(new Date(workflowRun.updated_at).getTime() / 1000) : null;
+      
+      const status = workflowRun.status || workflowRunJob?.status || null;
+      const conclusion = workflowRun.conclusion || workflowRunJob?.conclusion || null;
+
+      await this.env.ASH_LIST_TASKS_DB.prepare(
+        `INSERT INTO workflow_runs (project_name, run_id, status, conclusion, triggered_by, started_at, completed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(run_id) DO UPDATE SET 
+           status=excluded.status, 
+           conclusion=excluded.conclusion, 
+           completed_at=excluded.completed_at`
+      ).bind(
+        projectName,
+        workflowRun.id.toString(),
+        status,
+        conclusion,
+        workflowRun.event,
+        startedAt,
+        completedAt
+      ).run();
+
+      // Update project metrics automatically
+      await this.env.ASH_LIST_TASKS_DB.prepare(
+        `UPDATE projects
+         SET total_runs = (SELECT COUNT(*) FROM workflow_runs WHERE project_name = ? AND conclusion IS NOT NULL),
+             failed_runs = (SELECT COUNT(*) FROM workflow_runs WHERE project_name = ? AND conclusion = 'failure')
+         WHERE name = ?`
+      ).bind(projectName, projectName, projectName).run();
+    } catch (error) {
+      console.error('[LLM-flow] Failed to save workflow run or update metrics:', error);
     }
   }
 
@@ -180,25 +223,21 @@ export class GitHubService {
 
       let errorSummary: { category: string; severity?: string; root_cause?: string; solution: string; actionable_commands?: string[] } | null | undefined = null;
 
+      const openAIService = new OpenAIService(this.env);
+      const workflowYaml = await this.getWorkflowYamlContent(projectName);
+      
       const summaryKey = `${KV_RUN_SUMMARY_KEY}:${latestWorkflowRunId}`;
       const cachedSummary = await this.env.WORKFLOW_RUN_LOGS.get(summaryKey);
-      console.log(`[LLM-flow] cachedSummary=${!!cachedSummary}`);
 
       if (cachedSummary) {
         try {
           errorSummary = JSON.parse(cachedSummary);
         } catch (e) {
-          // Fallback for old cached strings
           errorSummary = { category: 'Unknown', solution: cachedSummary };
         }
       } else if (workflowRunLogs?.errorLines?.length) {
-        console.log(`[LLM-flow] sending to Gemini ${workflowRunLogs.errorLines.length} errors, first: "${workflowRunLogs.errorLines[0]?.line.slice(0, 80)}"`);
-
-        const openAIService = new OpenAIService(this.env);
-        const workflowYaml = await this.getWorkflowYamlContent(projectName);
         try {
           const summary = await openAIService.analyzeLogs(workflowRunLogs.errorLines, workflowYaml ?? undefined);
-          console.log(`[LLM-flow] Gemini result="${JSON.stringify(summary)}"`);
           errorSummary = summary ?? null;
 
           if (errorSummary) {
@@ -206,13 +245,20 @@ export class GitHubService {
               expirationTtl: WEEK_TIME
             });
 
-            // Save to D1 Database for analytics
             try {
               const cmds = Array.isArray(errorSummary.actionable_commands)
                 ? JSON.stringify(errorSummary.actionable_commands)
                 : null;
+              
+              // Get the first error line as a raw snippet
+              const rawLogSnippet = workflowRunLogs.errorLines.length > 0 
+                ? workflowRunLogs.errorLines[0].line.slice(0, 1000) 
+                : null;
+
               await this.env.ASH_LIST_TASKS_DB.prepare(
-                'INSERT INTO incidents (project_name, run_id, category, severity, root_cause, solution, actionable_commands) VALUES (?, ?, ?, ?, ?, ?, ?)'
+                `INSERT OR IGNORE INTO incidents 
+                (project_name, run_id, category, severity, root_cause, solution, actionable_commands, llm_model, confidence_score, raw_log_snippet) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
               ).bind(
                 projectName,
                 latestWorkflowRunId.toString(),
@@ -220,9 +266,11 @@ export class GitHubService {
                 errorSummary.severity ?? null,
                 errorSummary.root_cause ?? null,
                 errorSummary.solution,
-                cmds
+                cmds,
+                'gemini-2.5-flash-lite',
+                errorSummary.confidence_score ?? null,
+                rawLogSnippet
               ).run();
-              console.log(`[LLM-flow] Saved incident to DB`);
             } catch (dbError) {
               console.error('[LLM-flow] Failed to save incident to DB:', dbError);
             }
@@ -230,16 +278,22 @@ export class GitHubService {
         } catch (aiError) {
           console.error('[LLM-flow] Gemini call failed:', aiError);
         }
-      } else {
-        console.log(`[LLM-flow] No error lines and no fallback — skipping Gemini`);
       }
 
       const workflowRunJob = await this.getWorkflowRunJob(latestWorkflowRunId, projectName);
+      
+      const workflowRunStatus = latestWorkflowRun?.status || workflowRunJob?.status;
+      const workflowRunConclusion = latestWorkflowRun?.conclusion || workflowRunJob?.conclusion;
+
+      // Save workflow run to DB
+      if (latestWorkflowRun) {
+        await this.saveWorkflowRunToDB(latestWorkflowRun, projectName, workflowRunJob);
+      }
 
       return { 
         workflowRunJob, 
         errorSummary, 
-        workflowRunStatus: latestWorkflowRun?.status || workflowRunJob?.status 
+        workflowRunStatus
       };
     } catch (error) {
       handleServiceError(error, 'An unexpected error occurred while fetching latest workflow run');

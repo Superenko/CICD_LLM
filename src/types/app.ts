@@ -1,5 +1,4 @@
 import type { Pagination } from '@shared/types/misc';
-import type { ModelsData } from '@shared/types/models';
 import type { Project } from '@shared/types/projects';
 
 import type { Deployment, Stage } from './cloudflare';
@@ -47,11 +46,6 @@ export interface NewAppState {
   createAppError: string | null;
 }
 
-export interface ModelsState {
-  modelsData: ModelsData;
-  isModelsLoading: boolean;
-  modelsError: string | null;
-}
 
 export type AppStatus = Stage['status'];
 

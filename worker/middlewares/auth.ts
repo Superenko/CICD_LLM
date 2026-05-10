@@ -14,9 +14,9 @@ export const requireAuth = createMiddleware<AuthContextInput>(async (ctx, next) 
   }
 
   const authService = new AuthService(ctx.env);
-  const isAuthenticated = await authService.isAuthenticated(authToken);
+  const isValidJWT = await authService.verifyJWT(authToken);
 
-  if (!isAuthenticated) {
+  if (!isValidJWT) {
     return ctx.json({ error: 'Unauthorized' }, ErrorStatusCode.UNAUTHORIZED);
   }
 

@@ -4,6 +4,7 @@ import type { AuthState, LoginCredentials } from '@/types/auth';
 
 export interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<boolean>;
+  register: (credentials: LoginCredentials) => Promise<boolean>;
   logout: () => Promise<boolean>;
 }
 

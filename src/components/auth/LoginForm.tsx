@@ -12,15 +12,21 @@ const LoginForm = (props: FormHTMLAttributes<HTMLFormElement>) => {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
 
-  const { login, isLoading, error } = useAuth();
+  const { login, register, isLoading, error } = useAuth();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    const isLoginSuccessful = await login({ email, password });
+    let isSuccessful = false;
+    if (isRegisterMode) {
+      isSuccessful = await register({ email, password });
+    } else {
+      isSuccessful = await login({ email, password });
+    }
 
-    if (isLoginSuccessful) {
+    if (isSuccessful) {
       navigate('/');
     }
   };
@@ -60,18 +66,26 @@ const LoginForm = (props: FormHTMLAttributes<HTMLFormElement>) => {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          autoComplete="current-password"
+          autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
           disabled={isLoading}
         />
       </div>
 
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex flex-col items-center justify-between gap-4 sm:flex-row sm:gap-0">
+        <button
+          type="button"
+          onClick={() => setIsRegisterMode(!isRegisterMode)}
+          className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+          disabled={isLoading}
+        >
+          {isRegisterMode ? 'Already have an account? Log in' : "Don't have an account? Register"}
+        </button>
         <Button
           type="submit"
           disabled={isLoading}
           icon={isLoading ? <Loading className="size-5 text-white" /> : null}
         >
-          Log In
+          {isRegisterMode ? 'Register' : 'Log In'}
         </Button>
       </div>
     </form>

@@ -1,4 +1,3 @@
-import type { ModelsData } from '@shared/types/models';
 
 import type { AppDeployment, AppsData } from '@/types/app';
 import type { GithubDeploymentWorkflowInputs } from '@/types/github';
@@ -40,19 +39,6 @@ export const getIncidents = async () => {
   return response.json();
 };
 
-export const getModels = async (perPage: number = 10) => {
-  const searchParams = new URLSearchParams({ per_page: perPage.toString() });
-
-  const modelsResponse = await fetch(`/api/models?${searchParams.toString()}`, {
-    credentials: 'include'
-  });
-
-  if (!modelsResponse.ok) {
-    await handleServerError(modelsResponse, 'Failed to fetch models');
-  }
-
-  return modelsResponse.json() as unknown as ModelsData;
-};
 
 export const getAppDeployment = async (appName: string) => {
   const appDeploymentResponse = await fetch(`/api/projects/${appName}/deployment`, {

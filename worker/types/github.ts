@@ -37,10 +37,7 @@ export interface GithubWorkflowRunJobStep {
 
 export type GithubDeploymentWorkflowInputs = {
   run_id?: string;
-  modelName: string;
   siteName?: string;
-  airtableBaseId?: string;
-  airtableKey?: string;
 };
 
 export interface GithubJobErrorLine {

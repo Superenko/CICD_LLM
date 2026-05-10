@@ -7,7 +7,7 @@ export const ERROR_LOGS_ANALYSIS_SYSTEM_PROMPT =
   '3. The "solution" field MUST be actionable. If the fix is in the CI/CD YAML, specify exactly what to change. The "actionable_commands" field MUST list exact commands.\n' +
   '4. Severity levels: "Low" (style/non-critical), "Medium" (test/logic), "High" (broken import/config), "Critical" (security/systemic failure).\n' +
   'Your responses MUST be strictly valid JSON without markdown blocks.\n' +
-  'Fields: "category", "severity", "root_cause", "solution", "actionable_commands".';
+  'Fields: "category", "severity", "root_cause", "solution", "actionable_commands", "confidence_score" (number from 0.0 to 1.0).';
 
 export const buildErrorLogsAnalysisPrompt = (logs: string, workflowYaml?: string): string => {
   let prompt = `Analyze the following CI/CD pipeline failure logs.`;

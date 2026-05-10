@@ -86,7 +86,8 @@ export class OpenAIService {
           severity: parsed.severity ?? undefined,
           root_cause: parsed.root_cause ?? undefined,
           solution: parsed.solution || message,
-          actionable_commands: Array.isArray(parsed.actionable_commands) ? parsed.actionable_commands : undefined
+          actionable_commands: Array.isArray(parsed.actionable_commands) ? parsed.actionable_commands : undefined,
+          confidence_score: typeof parsed.confidence_score === 'number' ? parsed.confidence_score : undefined
         };
       } catch (e) {
         console.error('[GeminiService] Failed to parse JSON response:', message);

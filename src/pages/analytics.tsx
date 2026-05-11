@@ -152,12 +152,12 @@ export const Analytics = () => {
               <PieChart>
                 <Pie
                   data={pieData}
-                  cx="45%"
-                  cy="50%"
-                  outerRadius={100}
+                  cx="50%"
+                  cy="45%"
+                  outerRadius={90}
                   dataKey="value"
-                  label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
-                  labelLine={true}
+                  label={({ percent }) => ((percent || 0) > 0.05 ? `${((percent || 0) * 100).toFixed(0)}%` : '')}
+                  labelLine={false}
                 >
                   {pieData.map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

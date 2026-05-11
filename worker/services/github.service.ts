@@ -316,8 +316,9 @@ export class GitHubService {
       });
 
       const allJobs = jobs.data.jobs ?? [];
-      const failedJob = allJobs.find(job => job.conclusion === 'failure');
-      const workflowRunJob = failedJob || allJobs[0];
+      const failedJob = allJobs.find(job => job.conclusion === 'failure' || job.conclusion === 'timed_out');
+      const inProgressJob = allJobs.find(job => job.status === 'in_progress' || job.status === 'queued');
+      const workflowRunJob = failedJob || inProgressJob || allJobs[allJobs.length - 1];
       
       return workflowRunJob;
     } catch (error) {

@@ -38,12 +38,17 @@ export class GitHubService {
         }
       });
 
-      const workflowFilename = await this.getWorkflowFilename();
-      const filenameWithoutExt = workflowFilename.split('.')[0];
+      const workflowFilename = await this.getWorkflowFilename().catch(() => '');
+      const filenameWithoutExt = workflowFilename ? workflowFilename.split('.')[0] : '';
       
-      const targetWorkflow = workflows.data.workflows?.find((wf) =>
-        wf.path.includes(workflowFilename) || wf.path.includes(`${filenameWithoutExt}.yaml`) || wf.path.includes(`${filenameWithoutExt}.yml`)
+      let targetWorkflow = workflows.data.workflows?.find((wf) =>
+        workflowFilename && (wf.path.includes(workflowFilename) || wf.path.includes(`${filenameWithoutExt}.yaml`) || wf.path.includes(`${filenameWithoutExt}.yml`))
       );
+
+      // Fallback: If not found by name, pick the first active workflow in the repo
+      if (!targetWorkflow && workflows.data.workflows && workflows.data.workflows.length > 0) {
+        targetWorkflow = workflows.data.workflows.find(wf => wf.state === 'active') || workflows.data.workflows[0];
+      }
 
       return targetWorkflow;
     } catch (error) {
@@ -537,13 +542,18 @@ export class GitHubService {
   public async getWorkflowYamlContent(repoName: string) {
     try {
       const { owner } = await this.getRepositoryConfig();
-      const workflowFilename = await this.getWorkflowFilename();
+      const targetWorkflow = await this.getDeploymentWorkflow(repoName);
+      
+      if (!targetWorkflow || !targetWorkflow.path) {
+        return null;
+      }
+
       const githubToken = await this.getGitHubToken();
 
       const response = await request('GET /repos/{owner}/{repo}/contents/{path}', {
         owner,
         repo: repoName,
-        path: `.github/workflows/${workflowFilename}`,
+        path: targetWorkflow.path,
         headers: {
           authorization: `token ${githubToken}`
         }

@@ -17,7 +17,7 @@ import {
 import { extractErrorLines } from '@/utils/logs';
 import { sleep } from '@/utils/misc';
 
-import { OpenAIService } from './open-ai.service';
+import { GeminiService, GEMINI_MODEL } from './gemini.service';
 
 const WORKFLOW_RUNS_PER_PAGE = 30;
 
@@ -223,7 +223,7 @@ export class GitHubService {
 
       let errorSummary: { category: string; severity?: string; root_cause?: string; solution: string; actionable_commands?: string[]; confidence_score?: number } | null | undefined = null;
 
-      const openAIService = new OpenAIService(this.env);
+      const geminiService = new GeminiService(this.env);
       const workflowYaml = await this.getWorkflowYamlContent(projectName);
       
       const summaryKey = `${KV_RUN_SUMMARY_KEY}:${latestWorkflowRunId}`;
@@ -237,7 +237,7 @@ export class GitHubService {
         }
       } else if (workflowRunLogs?.errorLines?.length) {
         try {
-          const summary = await openAIService.analyzeLogs(workflowRunLogs.errorLines, workflowYaml ?? undefined);
+          const summary = await geminiService.analyzeLogs(workflowRunLogs.errorLines, workflowYaml ?? undefined);
           errorSummary = summary ?? null;
 
           if (errorSummary) {
@@ -267,7 +267,7 @@ export class GitHubService {
                 errorSummary.root_cause ?? null,
                 errorSummary.solution,
                 cmds,
-                'gemini-2.5-flash-lite',
+                GEMINI_MODEL,
                 errorSummary.confidence_score ?? null,
                 rawLogSnippet
               ).run();
@@ -390,9 +390,9 @@ export class GitHubService {
       const workflowRunJob = await this.getWorkflowRunJob(runId, repoName);
       const { id: jobId, name: jobName } = workflowRunJob ?? {};
 
-      const isFailedJob = workflowRunJob?.conclusion === 'failure';
-      console.log(`[LLM-flow] job conclusion="${workflowRunJob?.conclusion}", isFailedJob=${isFailedJob}, jobId=${jobId}`);
-      if (!jobId || !isFailedJob) return null;
+      const isAnalyzableJob = ['failure', 'timed_out'].includes(workflowRunJob?.conclusion ?? '');
+      console.log(`[LLM-flow] job conclusion="${workflowRunJob?.conclusion}", isAnalyzableJob=${isAnalyzableJob}, jobId=${jobId}`);
+      if (!jobId || !isAnalyzableJob) return null;
 
       const jobLogs = await this.getWorkflowRunJobLogs(jobId, repoName);
       console.log(`[LLM-flow] jobLogs length=${jobLogs?.length ?? 0}, preview=${jobLogs?.slice(-200)}`);
@@ -447,21 +447,30 @@ export class GitHubService {
         headers: { ...defaultHeaders }
       });
 
-      // HACK: Sleep to ensure the workflow run is created before fetching the most recent run
-      await sleep(5000);
+      // Poll with exponential backoff to ensure the workflow run is created
+      let runId: number | undefined;
+      const maxRetries = 5;
+      let delay = 1000;
 
-      const runs = await request(
-        'GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs?per_page=1&branch={branch}&event=workflow_dispatch',
-        {
-          owner,
-          repo: repoName,
-          workflow_id: targetWorkflowId,
-          branch,
-          headers: { ...defaultHeaders }
-        }
-      );
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        await sleep(delay);
+        
+        const runs = await request(
+          'GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs?per_page=1&branch={branch}&event=workflow_dispatch',
+          {
+            owner,
+            repo: repoName,
+            workflow_id: targetWorkflowId,
+            branch,
+            headers: { ...defaultHeaders }
+          }
+        );
 
-      const runId = runs.data.workflow_runs?.[0]?.id as unknown as number | undefined;
+        runId = runs.data.workflow_runs?.[0]?.id as unknown as number | undefined;
+        if (runId) break;
+
+        delay *= 2; // Exponential backoff
+      }
 
       return { runId };
     } catch (error) {

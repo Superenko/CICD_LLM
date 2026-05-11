@@ -1,4 +1,4 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { useOutletContext } from 'react-router';
 import {
   PieChart,
@@ -11,9 +11,12 @@ import {
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid
+  CartesianGrid,
+  LineChart,
+  Line
 } from 'recharts';
 
+import type { Incident } from '@shared/types/projects';
 import { getIncidents } from '@/server/apps';
 import Loading from '@/components/icons/Loading';
 
@@ -26,7 +29,7 @@ const SEVERITY_STYLES: Record<string, string> = {
   Critical: 'bg-red-600 text-white'
 };
 
-const SeverityBadge = ({ severity }: { severity?: string }) => {
+const SeverityBadge = ({ severity }: { severity?: string | null }) => {
   if (!severity) return <span className="text-gray-400 text-xs">—</span>;
   const style = SEVERITY_STYLES[severity] ?? 'bg-gray-200 text-gray-700';
   return (
@@ -42,8 +45,29 @@ const CategoryBadge = ({ category }: { category: string }) => (
   </span>
 );
 
+/** Group incidents by ISO week (YYYY-Www) for the trend chart */
+const groupByWeek = (incidents: Incident[]): { week: string; count: number }[] => {
+  const weekCounts: Record<string, number> = {};
+
+  for (const inc of incidents) {
+    const date = new Date(inc.created_at * 1000);
+    const year = date.getFullYear();
+    // ISO week number
+    const startOfYear = new Date(year, 0, 1);
+    const weekNum = Math.ceil(
+      ((date.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7
+    );
+    const key = `${year}-W${String(weekNum).padStart(2, '0')}`;
+    weekCounts[key] = (weekCounts[key] ?? 0) + 1;
+  }
+
+  return Object.entries(weekCounts)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([week, count]) => ({ week, count }));
+};
+
 export const Analytics = () => {
-  const [incidents, setIncidents] = useState<any[]>([]);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,14 +83,43 @@ export const Analytics = () => {
         setIsLoading(true);
         const data = await getIncidents();
         setIncidents(data);
-      } catch (err: any) {
-        setError(err.message || 'Failed to fetch incidents');
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Failed to fetch incidents';
+        setError(message);
       } finally {
         setIsLoading(false);
       }
     };
     fetchIncidents();
   }, []);
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const inc of incidents) {
+      const cat = inc.category || 'Unknown';
+      counts[cat] = (counts[cat] ?? 0) + 1;
+    }
+    return counts;
+  }, [incidents]);
+
+  const pieData = useMemo(
+    () => Object.entries(categoryCounts).map(([name, value]) => ({ name, value })),
+    [categoryCounts]
+  );
+
+  const weeklyTrend = useMemo(() => groupByWeek(incidents), [incidents]);
+
+  const severityCounts = useMemo(() => {
+    const order = ['Critical', 'High', 'Medium', 'Low'];
+    const counts: Record<string, number> = {};
+    for (const inc of incidents) {
+      const sev = inc.severity ?? 'Unknown';
+      counts[sev] = (counts[sev] ?? 0) + 1;
+    }
+    return order
+      .filter((s) => counts[s])
+      .map((name) => ({ name, value: counts[name] }));
+  }, [incidents]);
 
   if (isLoading) {
     return (
@@ -81,21 +134,16 @@ export const Analytics = () => {
   }
 
   if (incidents.length === 0) {
-    return <div className="text-gray-500 p-6 text-center mt-12 text-lg">No incident data available yet.</div>;
+    return (
+      <div className="text-gray-500 p-6 text-center mt-12 text-lg">
+        No incident data available yet.
+      </div>
+    );
   }
-
-  // Aggregate by category for charts
-  const categoryCounts: Record<string, number> = {};
-  incidents.forEach((inc) => {
-    const cat = inc.category || 'Unknown';
-    categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
-  });
-
-  const pieData = Object.entries(categoryCounts).map(([name, value]) => ({ name, value }));
 
   return (
     <div className="space-y-8 py-8">
-      {/* Charts */}
+      {/* Row 1: Category pie + Severity bar */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
           <h2 className="text-base font-semibold mb-4 text-gray-800">Incidents by Category</h2>
@@ -128,31 +176,58 @@ export const Analytics = () => {
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-          <h2 className="text-base font-semibold mb-4 text-gray-800">Incident Frequency</h2>
+          <h2 className="text-base font-semibold mb-4 text-gray-800">Incidents by Severity</h2>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={pieData} margin={{ top: 4, right: 8, left: -16, bottom: 40 }}>
+              <BarChart data={severityCounts} margin={{ top: 4, right: 8, left: -16, bottom: 8 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fontSize: 11, fill: '#6b7280' }}
-                  angle={-25}
-                  textAnchor="end"
-                  interval={0}
-                />
+                <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#6b7280' }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
                 <Tooltip />
-                <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="value" fill="#ef4444" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
       </div>
 
+      {/* Row 2: Weekly trend line chart */}
+      {weeklyTrend.length > 1 && (
+        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+          <h2 className="text-base font-semibold mb-1 text-gray-800">Incident Trend (by week)</h2>
+          <p className="text-xs text-gray-400 mb-4">
+            Number of CI/CD failures detected per calendar week
+          </p>
+          <div className="h-56 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={weeklyTrend} margin={{ top: 4, right: 16, left: -16, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#6b7280' }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#6b7280' }} />
+                <Tooltip />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#6366f1"
+                  strokeWidth={2}
+                  dot={{ r: 4, fill: '#6366f1' }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       {/* Recent Incidents table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-gray-800">Recent Incidents</h2>
+          <h2 className="text-base font-semibold text-gray-800">
+            Recent Incidents
+            <span className="ml-2 text-xs font-normal text-gray-400">
+              ({incidents.length} total)
+            </span>
+          </h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
@@ -162,20 +237,17 @@ export const Analytics = () => {
                 <th className="px-5 py-3 font-medium">Category</th>
                 <th className="px-5 py-3 font-medium">Severity</th>
                 <th className="px-5 py-3 font-medium">Root Cause / Solution</th>
+                <th className="px-5 py-3 font-medium whitespace-nowrap">Model</th>
                 <th className="px-5 py-3 font-medium whitespace-nowrap">Date</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {incidents.map((incident) => {
-                let parsed: any = null;
-                try {
-                  parsed = typeof incident.solution === 'string' ? JSON.parse(incident.solution) : incident;
-                } catch {}
-
-                const severity = parsed?.severity ?? incident.severity;
-                const rootCause = parsed?.root_cause ?? incident.root_cause;
-                const solution = parsed?.solution ?? incident.solution;
-                const displayText = rootCause || solution || '—';
+                const displayText = incident.root_cause || incident.solution || '—';
+                const confidence =
+                  incident.confidence_score != null
+                    ? `${Math.round(incident.confidence_score * 100)}%`
+                    : null;
 
                 return (
                   <tr key={incident.id} className="bg-white hover:bg-gray-50 transition-colors">
@@ -186,10 +258,19 @@ export const Analytics = () => {
                       <CategoryBadge category={incident.category} />
                     </td>
                     <td className="px-5 py-3.5">
-                      <SeverityBadge severity={severity} />
+                      <SeverityBadge severity={incident.severity} />
                     </td>
-                    <td className="px-5 py-3.5 max-w-xs truncate text-gray-600" title={displayText}>
+                    <td
+                      className="px-5 py-3.5 max-w-xs truncate text-gray-600"
+                      title={displayText}
+                    >
                       {displayText}
+                    </td>
+                    <td className="px-5 py-3.5 whitespace-nowrap text-gray-400 text-xs">
+                      {incident.llm_model ?? '—'}
+                      {confidence && (
+                        <span className="ml-1 text-indigo-400">({confidence})</span>
+                      )}
                     </td>
                     <td className="px-5 py-3.5 whitespace-nowrap text-gray-500 text-xs">
                       {new Date(incident.created_at * 1000).toLocaleString()}

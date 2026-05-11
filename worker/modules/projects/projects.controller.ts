@@ -105,7 +105,13 @@ export const handleSyncProjects = async (ctx: AuthContext) => {
 export const handleGetIncidents = async (ctx: AuthContext) => {
   try {
     const { results } = await ctx.env.ASH_LIST_TASKS_DB.prepare(
-      'SELECT id, project_name, run_id, category, severity, root_cause, solution, actionable_commands, created_at FROM incidents ORDER BY created_at DESC LIMIT 100'
+      `SELECT
+         id, project_name, run_id, category, severity, root_cause,
+         solution, actionable_commands, llm_model, confidence_score,
+         raw_log_snippet, created_at
+       FROM incidents
+       ORDER BY created_at DESC
+       LIMIT 100`
     ).all();
     return ctx.json(results || []);
   } catch (error) {

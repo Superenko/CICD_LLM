@@ -1,7 +1,7 @@
 import { GithubJobErrorLine } from '../types/github';
 
 const ISO_TIMESTAMP_PREFIX = /^\d{4}-\d{2}-\d{2}T[^\s]+Z\s+/;
-const GROUP_START_END_PREFIX = /^##\[(group|endgroup)\].*$/i;
+const GROUP_START_END_PREFIX = /^##\[(group|endgroup)\]\s*/i;
 
 const cleanLine = (line: string) =>
   line.replace(ISO_TIMESTAMP_PREFIX, '').replace(GROUP_START_END_PREFIX, '').trim();
@@ -40,7 +40,7 @@ export const extractErrorLines = (logText: string): GithubJobErrorLine[] => {
 
     const startIdx = Math.max(0, index - CONTEXT_BEFORE);
     const endIdx = Math.min(logLines.length - 1, index + CONTEXT_AFTER);
-    
+
     const contextLines = logLines.slice(startIdx, endIdx + 1).map(l => cleanLine(l)).filter(Boolean);
 
     errorContexts.push({
@@ -75,9 +75,9 @@ export const extractErrorLines = (logText: string): GithubJobErrorLine[] => {
       // Also check specific string matches that might not be caught by generic patterns
       const jsonMessageMatch = cleanedLine.match(/"message"\s*:\s*"([^"]+)"/i);
       if (jsonMessageMatch?.[1]) {
-         pushError(i, jsonMessageMatch[1]);
+        pushError(i, jsonMessageMatch[1]);
       } else if (/Cloudflare API\b/i.test(cleanedLine)) {
-         pushError(i, cleanedLine);
+        pushError(i, cleanedLine);
       }
     }
   }

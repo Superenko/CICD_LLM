@@ -3,7 +3,7 @@ import { ERROR_LOGS_ANALYSIS_SYSTEM_PROMPT, buildErrorLogsAnalysisPrompt } from 
 import { GithubJobErrorLine } from '@/types/github';
 
 const GEMINI_API_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
-const GEMINI_MODEL = 'gemini-2.5-flash-lite';
+export const GEMINI_MODEL = 'gemini-2.5-flash-lite';
 const GEMINI_TEMPERATURE = 0.1;
 const MAX_LOGS_CHARS = 12000;
 
@@ -15,7 +15,7 @@ interface GeminiResponse {
   }[];
 }
 
-export class OpenAIService {
+export class GeminiService {
   constructor(private readonly env: Env) {}
 
   public async analyzeLogs(logs: GithubJobErrorLine[], workflowYaml?: string) {
@@ -28,7 +28,7 @@ export class OpenAIService {
         : undefined;
 
       if (!apiKey) {
-        throw new Error('OpenAI API key is not configured.');
+        throw new Error('Gemini API key is not configured.');
       }
 
       const formattedLogs = this.formatLogs(logs);
@@ -76,7 +76,7 @@ export class OpenAIService {
       if (message.endsWith('```')) {
         message = message.substring(0, message.length - 3);
       }
-      
+
       message = message.trim();
 
       try {
@@ -86,8 +86,11 @@ export class OpenAIService {
           severity: parsed.severity ?? undefined,
           root_cause: parsed.root_cause ?? undefined,
           solution: parsed.solution || message,
-          actionable_commands: Array.isArray(parsed.actionable_commands) ? parsed.actionable_commands : undefined,
-          confidence_score: typeof parsed.confidence_score === 'number' ? parsed.confidence_score : undefined
+          actionable_commands: Array.isArray(parsed.actionable_commands)
+            ? parsed.actionable_commands
+            : undefined,
+          confidence_score:
+            typeof parsed.confidence_score === 'number' ? parsed.confidence_score : undefined
         };
       } catch (e) {
         console.error('[GeminiService] Failed to parse JSON response:', message);
@@ -104,11 +107,6 @@ export class OpenAIService {
     const formattedLogs = JSON.stringify(logs, null, 2);
 
     if (formattedLogs.length > MAX_LOGS_CHARS) {
-      // If it's too long, maybe just truncate the string.
-      // But since it's JSON, truncating string might break JSON format.
-      // Alternatively, we could slice the array before stringifying.
-      // Let's slice the array to the last N elements and try stringifying again, but for now we'll just truncate the string and let the LLM handle broken JSON if it happens.
-      // Better approach: limit the number of logs sent to fit within chars.
       let result = [];
       let currentLength = 0;
       for (let i = logs.length - 1; i >= 0; i--) {

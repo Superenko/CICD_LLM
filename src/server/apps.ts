@@ -1,6 +1,7 @@
 
 import type { AppDeployment, AppsData } from '@/types/app';
 import type { GithubDeploymentWorkflowInputs } from '@/types/github';
+import type { Incident } from '@shared/types/projects';
 
 interface AppDeploymentTriggerResponse {
   runId: string;
@@ -27,7 +28,7 @@ export const getApps = async (page: number = 1) => {
   return apps;
 };
 
-export const getIncidents = async () => {
+export const getIncidents = async (): Promise<Incident[]> => {
   const response = await fetch(`/api/projects/incidents`, {
     credentials: 'include'
   });
